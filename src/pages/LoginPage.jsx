@@ -17,7 +17,8 @@ export default function LoginPage() {
     try {
       const user = await AuthService.login(form.username, form.password);
       login(user);
-      navigate('/chat');
+      // navigate('/chat');
+      navigate('/home');
     } catch (e) {
       setError(e.message);
     } finally {

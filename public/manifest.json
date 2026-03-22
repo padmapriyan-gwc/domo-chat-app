@@ -27,6 +27,18 @@
           { "name": "roomId", "type": "STRING" }
         ]
       }
+    },
+    {
+      "name": "ChatRooms",
+      "schema": {
+        "columns": [
+          { "name": "name", "type": "STRING" },
+          { "name": "type", "type": "STRING" },
+          { "name": "members", "type": "STRING" },
+          { "name": "createdBy", "type": "STRING" },
+          { "name": "createdAt", "type": "STRING" }
+        ]
+      }
     }
   ],
   "workflowMapping": [],

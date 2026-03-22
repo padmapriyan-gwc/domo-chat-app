@@ -39,9 +39,9 @@
 //   },
 // };
 
-import { signupAPI, loginAPI } from '../api/domoAPI';
+import { signupAPI, loginAPI } from '../api/domoApi';
 
 export const AuthService = {
   signup: (username, password) => signupAPI(username, password),
-  login: (username, password) => loginAPI(username, password),
+  login:  (username, password) => loginAPI(username, password),
 };

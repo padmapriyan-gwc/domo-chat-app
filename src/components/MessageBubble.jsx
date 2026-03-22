@@ -1,28 +1,9 @@
-// import React from 'react';
-
-// export const MessageBubble = ({ msg, isOwn }) => (
-//   <div className={`flex flex-col mb-3 ${isOwn ? 'items-end' : 'items-start'}`}>
-//     {!isOwn && (
-//       <span className="text-xs text-gray-400 mb-1 ml-1 font-medium">{msg.sender}</span>
-//     )}
-//     <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm shadow-sm
-//       ${isOwn
-//         ? 'bg-blue-500 text-white rounded-br-none'
-//         : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'}`}>
-//       {msg.message}
-//     </div>
-//     <span className="text-xs text-gray-400 mt-1 mx-1">
-//       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-//     </span>
-//   </div>
-// );
-
 import React, { useState } from 'react';
 import { ChatService } from '../services/chatService';
 
 export const MessageBubble = ({ msg, isOwn, onDelete, onEdit }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(msg.message);
+  const [isEditing, setIsEditing]   = useState(false);
+  const [editText, setEditText]     = useState(msg.message);
   const [showActions, setShowActions] = useState(false);
 
   const handleDelete = async () => {
@@ -32,24 +13,17 @@ export const MessageBubble = ({ msg, isOwn, onDelete, onEdit }) => {
     }
   };
 
-const handleEdit = async () => {
-  if (!editText.trim()) return;
-
-  try {
-    setIsEditing(false);
-
-    // API now returns the new document with a new id
-    const updated = await ChatService.editMessage(msg.id, editText.trim(), msg);
-
-    // Pass both old id and the full updated doc up
-    onEdit(msg.id, editText.trim(), updated.id);
-
-  } catch (err) {
-    console.error('Edit failed:', err);
-    setIsEditing(true);
-    alert('Edit failed — please try again');
-  }
-};
+  const handleEdit = async () => {
+    if (!editText.trim()) return;
+    try {
+      setIsEditing(false);
+      const updated = await ChatService.editMessage(msg.id, editText.trim(), msg);
+      onEdit(msg.id, editText.trim(), updated.id);
+    } catch {
+      setIsEditing(true);
+      alert('Edit failed — please try again');
+    }
+  };
 
   return (
     <div
@@ -57,17 +31,13 @@ const handleEdit = async () => {
       onMouseEnter={() => isOwn && setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Sender name */}
       {!isOwn && (
         <span className="text-xs text-gray-400 mb-1 ml-1 font-medium">
           {msg.sender}
         </span>
       )}
 
-      {/* Message bubble + action buttons */}
       <div className="flex items-end gap-2">
-
-        {/* Edit / Delete buttons — only your messages, shown on hover */}
         {isOwn && showActions && !isEditing && (
           <div className="flex gap-1 mb-1">
             <button
@@ -87,16 +57,14 @@ const handleEdit = async () => {
           </div>
         )}
 
-        {/* Bubble */}
         {isEditing ? (
-          /* Edit mode */
           <div className="flex flex-col gap-2 max-w-xs">
             <input
               className="px-3 py-2 rounded-xl border border-blue-300 text-sm
                          focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              onKeyDown={(e) => {
+              onChange={e => setEditText(e.target.value)}
+              onKeyDown={e => {
                 if (e.key === 'Enter') handleEdit();
                 if (e.key === 'Escape') setIsEditing(false);
               }}
@@ -119,7 +87,6 @@ const handleEdit = async () => {
             </div>
           </div>
         ) : (
-          /* Normal bubble */
           <div
             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm shadow-sm
               ${isOwn
@@ -128,18 +95,16 @@ const handleEdit = async () => {
               }`}
           >
             {msg.message}
-            {msg.edited && (
+            {msg.edited === 'true' && (
               <span className="text-xs opacity-60 ml-2">(edited)</span>
             )}
           </div>
         )}
       </div>
 
-      {/* Timestamp */}
       <span className="text-xs text-gray-400 mt-1 mx-1">
         {new Date(msg.timestamp).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
+          hour: '2-digit', minute: '2-digit',
         })}
       </span>
     </div>
