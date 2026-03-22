@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { MessageBubble } from '../components/MessageBubble';
 import { MessageInput } from '../components/MessageInput';
 
-export default function ChatPage({ room }) {
+export default function ChatPage({ room, onBack }) {
   const { user } = useAuth();
   const [messages, setMessages]   = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -72,10 +72,24 @@ export default function ChatPage({ room }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 shadow-sm">
+
+      {/* Header with back button for mobile */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-white
+                      border-b border-gray-100 shadow-sm flex-shrink-0">
+
+        {/* Back button — mobile only */}
+        <button
+          onClick={onBack}
+          className="md:hidden w-8 h-8 flex items-center justify-center
+                     text-gray-500 hover:text-gray-700 rounded-full
+                     hover:bg-gray-100 transition-colors flex-shrink-0"
+        >
+          ←
+        </button>
+
+        {/* Room avatar */}
         <div className={`w-9 h-9 rounded-full flex items-center justify-center
-                         text-sm font-semibold
+                         text-sm font-semibold flex-shrink-0
                          ${room?.type === 'group'
                            ? 'bg-purple-100 text-purple-600'
                            : room?.type === 'dm'
@@ -83,10 +97,14 @@ export default function ChatPage({ room }) {
                            : 'bg-blue-100 text-blue-600'}`}>
           {room?.type === 'group' ? '⊞' : roomName[0]?.toUpperCase()}
         </div>
-        <div>
-          <p className="font-semibold text-sm text-gray-800">{roomName}</p>
+
+        {/* Room info */}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-gray-800 truncate">
+            {roomName}
+          </p>
           <p className="text-xs text-gray-400 flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0
                               ${online ? 'bg-green-400' : 'bg-red-400'}`} />
             {online ? 'Live' : 'Reconnecting...'}
             {room?.type === 'group' && ` · ${room.members?.length || 0} members`}
@@ -95,9 +113,10 @@ export default function ChatPage({ room }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto px-3 md:px-4 py-4 bg-gray-50">
         {loading ? (
-          <div className="flex justify-center items-center h-full text-gray-400 text-sm">
+          <div className="flex justify-center items-center h-full
+                          text-gray-400 text-sm">
             Loading messages...
           </div>
         ) : messages.length === 0 ? (

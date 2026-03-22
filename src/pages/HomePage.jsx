@@ -10,9 +10,10 @@ export default function HomePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [activeRoom, setActiveRoom]       = useState({ id: 'general', name: 'general', type: 'public' });
-  const [showNewChat, setShowNewChat]     = useState(false);
-  const [showNewGroup, setShowNewGroup]   = useState(false);
+  const [activeRoom, setActiveRoom]     = useState({ id: 'general', name: 'general', type: 'public' });
+  const [showNewChat, setShowNewChat]   = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showSidebar, setShowSidebar]   = useState(true); // mobile toggle
 
   const handleLogout = () => {
     logout();
@@ -21,16 +22,27 @@ export default function HomePage() {
 
   const handleRoomCreated = (room) => {
     setActiveRoom(room);
+    setShowSidebar(false); // on mobile, go to chat after selecting
+  };
+
+  const handleSelectRoom = (room) => {
+    setActiveRoom(room);
+    setShowSidebar(false); // on mobile, hide sidebar when room selected
   };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
 
-      {/* Left column: sidebar + user footer */}
-      <div className="flex flex-col w-72 min-w-[280px] h-full border-r border-gray-100">
+      {/* Sidebar — full screen on mobile, fixed width on desktop */}
+      <div className={`
+        flex flex-col h-full border-r border-gray-100 bg-white
+        transition-all duration-300
+        ${showSidebar ? 'flex' : 'hidden'}
+        w-full md:flex md:w-72 md:min-w-[280px]
+      `}>
         <Sidebar
           activeRoomId={activeRoom?.id}
-          onSelectRoom={setActiveRoom}
+          onSelectRoom={handleSelectRoom}
           onNewChat={() => setShowNewChat(true)}
           onNewGroup={() => setShowNewGroup(true)}
         />
@@ -53,10 +65,16 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Right column: chat window */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Chat window — hidden on mobile when sidebar is showing */}
+      <div className={`
+        flex-1 flex flex-col h-full overflow-hidden
+        ${showSidebar ? 'hidden md:flex' : 'flex'}
+      `}>
         {activeRoom ? (
-          <ChatPage room={activeRoom} />
+          <ChatPage
+            room={activeRoom}
+            onBack={() => setShowSidebar(true)} // mobile back button
+          />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <span className="text-4xl mb-3">💬</span>
