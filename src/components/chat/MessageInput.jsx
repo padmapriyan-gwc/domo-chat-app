@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export const MessageInput = ({ onSend }) => {
+export function MessageInput({ onSend }) {
   const [text, setText] = useState('');
 
   const handleSend = () => {
@@ -10,12 +10,12 @@ export const MessageInput = ({ onSend }) => {
   };
 
   return (
-    <div className="flex items-center gap-2 p-3 bg-white border-t
-                    border-gray-100 flex-shrink-0">
+    <div className="flex items-center gap-2 p-3 bg-white
+                    border-t border-gray-100 flex-shrink-0">
       <input
-        className="flex-1 px-4 py-2.5 rounded-full bg-gray-100 text-sm
-                   focus:outline-none focus:ring-2 focus:ring-blue-400
-                   min-w-0"
+        className="flex-1 px-4 py-2.5 rounded-full bg-gray-100
+                   text-sm focus:outline-none focus:ring-2
+                   focus:ring-blue-400 min-w-0"
         value={text}
         onChange={e => setText(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleSend()}
@@ -32,4 +32,4 @@ export const MessageInput = ({ onSend }) => {
       </button>
     </div>
   );
-};
+}

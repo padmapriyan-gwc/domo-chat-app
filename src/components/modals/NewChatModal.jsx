@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ChatService } from '../services/chatService';
-import { useAuth } from '../context/AuthContext';
+import { ChatService } from '../../services/chatService';
+import { useAuth } from '../../context/AuthContext';
 
 export const NewChatModal = ({ onClose, onRoomCreated }) => {
   const { user } = useAuth();
