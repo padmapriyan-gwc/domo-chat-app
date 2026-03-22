@@ -6,7 +6,31 @@
     "height": 3
   },
   "mapping": [],
-  "collections": [],
+  "collections": [
+    {
+      "name": "ChatUsers",
+      "schema": {
+        "columns": [
+          { "name": "username", "type": "STRING" },
+          { "name": "passwordHash", "type": "STRING" },
+          { "name": "createdAt", "type": "STRING" }
+        ]
+      }
+    },
+    {
+      "name": "ChatMessages",
+      "schema": {
+        "columns": [
+          { "name": "sender", "type": "STRING" },
+          { "name": "message", "type": "STRING" },
+          { "name": "timestamp", "type": "STRING" },
+          { "name": "roomId", "type": "STRING" }
+        ]
+      }
+    }
+  ],
   "workflowMapping": [],
-  "packagesMapping": []
+  "packagesMapping": [],
+  "id": "e62e4a24-2717-4350-b897-ef59ba308b87",
+  "proxyId": "718d5d4b-87f4-4bdd-b4fb-d83917b8e34e"
 }
