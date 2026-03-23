@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { ChatService } from '../../services/chatService';
+import { Avatar } from '../common/Avatar';
 
-export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
+export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
   const [isEditing, setIsEditing]     = useState(false);
   const [editText, setEditText]       = useState(msg.message);
   const [showActions, setShowActions] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleDelete = async () => {
-    // Pass msg.roomId so Ably publishes to the correct channel
-    // Works for both group rooms and DM rooms
     await ChatService.deleteMessage(msg.id, msg.roomId);
     onDelete(msg.id);
     setShowConfirm(false);
@@ -20,9 +19,7 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
     try {
       setIsEditing(false);
       const updated = await ChatService.editMessage(
-        msg.id,
-        editText.trim(),
-        msg  // contains roomId — used by Ably to notify correct channel
+        msg.id, editText.trim(), msg
       );
       onEdit(msg.id, editText.trim(), updated.id);
     } catch {
@@ -33,17 +30,31 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
 
   return (
     <div
-      className={`flex flex-col mb-3 ${isOwn ? 'items-end' : 'items-start'}`}
+      className={`
+        flex flex-col mb-1
+        ${isOwn ? 'items-end' : 'items-start'}
+        ${!isGrouped ? 'mt-3' : ''}
+        animate-in fade-in slide-in-from-bottom-2 duration-200
+      `}
       onMouseEnter={() => isOwn && setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {!isOwn && (
-        <span className="text-xs text-gray-400 mb-1 ml-1 font-medium">
-          {msg.sender}
-        </span>
+      {/* Sender name + avatar — hidden when grouped */}
+      {!isOwn && !isGrouped && (
+        <div className="flex items-center gap-2 mb-1 ml-1">
+          <Avatar name={msg.sender} size="sm" />
+          <span className="text-xs text-gray-400 font-medium">
+            {msg.sender}
+          </span>
+        </div>
       )}
 
-      <div className="flex items-end gap-2">
+      {/* Spacer to align grouped messages with avatar */}
+      {!isOwn && isGrouped && (
+        <div className="ml-9" />
+      )}
+
+      <div className={`flex items-end gap-2 ${isOwn ? '' : 'ml-9'}`}>
 
         {/* Edit / Delete buttons */}
         {isOwn && showActions && !isEditing && !showConfirm && (
@@ -51,21 +62,21 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
             <button
               onClick={() => setIsEditing(true)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               Edit
             </button>
             <button
               onClick={() => setShowConfirm(true)}
               className="text-xs bg-red-50 hover:bg-red-100
-                        text-red-400 px-2 py-1 rounded-lg transition-colors"
+                         text-red-400 px-2 py-1 rounded-lg transition-colors"
             >
               Delete
             </button>
           </div>
         )}
 
-        {/* Inline confirm — no window.confirm (blocked by Domo sandbox) */}
+        {/* Inline delete confirm */}
         {showConfirm && (
           <div className="flex items-center gap-2 mb-1 bg-red-50
                           border border-red-100 rounded-xl px-3 py-2">
@@ -75,14 +86,14 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
             <button
               onClick={handleDelete}
               className="text-xs bg-red-500 hover:bg-red-600
-                        text-white px-2 py-1 rounded-lg transition-colors"
+                         text-white px-2 py-1 rounded-lg transition-colors"
             >
               Yes
             </button>
             <button
               onClick={() => setShowConfirm(false)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               No
             </button>
@@ -94,8 +105,8 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
           <div className="flex flex-col gap-2 max-w-xs w-full">
             <input
               className="px-3 py-2 rounded-xl border border-blue-300
-                        text-sm focus:outline-none focus:ring-2
-                        focus:ring-blue-400 w-full"
+                         text-sm focus:outline-none focus:ring-2
+                         focus:ring-blue-400 w-full"
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => {
@@ -114,7 +125,7 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
               <button
                 onClick={handleEdit}
                 className="text-xs bg-blue-500 hover:bg-blue-600
-                          text-white px-3 py-1 rounded-lg transition-colors"
+                           text-white px-3 py-1 rounded-lg transition-colors"
               >
                 Save
               </button>
@@ -138,8 +149,10 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
         )}
       </div>
 
+      {/* Timestamp — only show on last message in group */}
       {!showConfirm && (
-        <span className="text-xs text-gray-400 mt-1 mx-1">
+        <span className={`text-xs text-gray-400 mt-1
+                          ${isOwn ? 'mr-1' : 'ml-10'}`}>
           {new Date(msg.timestamp).toLocaleTimeString([], {
             hour: '2-digit', minute: '2-digit',
           })}

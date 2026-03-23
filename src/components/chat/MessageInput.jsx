@@ -1,7 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
-export function MessageInput({ onSend }) {
-  const [text, setText] = useState('');
+export function MessageInput({ onSend, onTyping }) {
+  const [text, setText]         = useState('');
+  const typingThrottle          = useRef(null);
+
+  const handleChange = (e) => {
+    setText(e.target.value);
+
+    // Throttle typing events — publish at most once every 2s
+    if (!typingThrottle.current) {
+      onTyping?.();
+      typingThrottle.current = setTimeout(() => {
+        typingThrottle.current = null;
+      }, 2000);
+    }
+  };
 
   const handleSend = () => {
     if (!text.trim()) return;
@@ -17,7 +30,7 @@ export function MessageInput({ onSend }) {
                    text-sm focus:outline-none focus:ring-2
                    focus:ring-blue-400 min-w-0"
         value={text}
-        onChange={e => setText(e.target.value)}
+        onChange={handleChange}
         onKeyDown={e => e.key === 'Enter' && handleSend()}
         placeholder="Type a message..."
       />

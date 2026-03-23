@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from '../components/sidebar/Sidebar';
@@ -16,6 +16,30 @@ export default function HomePage() {
   const [showNewChat, setShowNewChat]   = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Escape — close any open modal
+      if (e.key === 'Escape') {
+        setShowNewChat(false);
+        setShowNewGroup(false);
+      }
+      // Ctrl+K — open new chat
+      if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setShowNewChat(true);
+      }
+      // Ctrl+G — open new group
+      if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setShowNewGroup(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -23,7 +47,7 @@ export default function HomePage() {
 
   const handleSelectRoom = (room) => {
     setActiveRoom(room);
-    setShowSidebar(false); // mobile: go to chat
+    setShowSidebar(false);
   };
 
   const handleRoomCreated = (room) => {
@@ -65,6 +89,9 @@ export default function HomePage() {
                           h-full text-gray-400">
             <span className="text-4xl mb-3">💬</span>
             <p className="text-sm">Select a chat to start messaging</p>
+            <p className="text-xs text-gray-300 mt-1">
+              Press Ctrl+K to start a new chat
+            </p>
           </div>
         )}
       </div>

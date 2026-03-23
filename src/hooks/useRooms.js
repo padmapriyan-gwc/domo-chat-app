@@ -1,21 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChatService } from '../services/chatService';
-import { getAbly } from '../lib/ably';
+import { getAbly, getChannel } from '../lib/ably';
 
-export function useRooms(username) {
-  const [rooms, setRooms]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const channelRef            = useRef(null);
+export function useRooms(username, activeRoomId) {
+  const [rooms, setRooms]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const channelRef                      = useRef(null);
+  const roomChannels                    = useRef({});
 
-  const loadRooms = async () => {
-    try {
-      const data = await ChatService.fetchRooms(username);
-      setRooms(data);
-    } catch (err) {
-      console.error('Failed to load rooms:', err);
-    } finally {
-      setLoading(false);
+  // Keep a ref of activeRoomId so Ably callbacks always
+  // read the latest value — not the stale closure value
+  const activeRoomIdRef = useRef(activeRoomId);
+  useEffect(() => {
+    activeRoomIdRef.current = activeRoomId;
+  }, [activeRoomId]);
+
+  // Clear unread when activeRoom changes
+  useEffect(() => {
+    if (activeRoomId) {
+      setUnreadCounts(prev => ({ ...prev, [activeRoomId]: 0 }));
     }
+  }, [activeRoomId]);
+
+  const subscribeRoomForUnread = (roomId) => {
+    if (roomChannels.current[roomId]) return;
+
+    const channel = getChannel(roomId);
+    roomChannels.current[roomId] = channel;
+
+    channel.subscribe('new-message', (ablyMsg) => {
+      const incoming = ablyMsg.data;
+      if (incoming.sender === username) return;
+
+      // Use ref — always has the latest activeRoomId value
+      if (activeRoomIdRef.current === roomId) return;
+
+      setUnreadCounts(prev => ({
+        ...prev,
+        [roomId]: (prev[roomId] || 0) + 1,
+      }));
+    });
   };
 
   const subscribeAbly = () => {
@@ -27,6 +52,7 @@ export function useRooms(username) {
       setRooms(prev => {
         const exists = prev.some(r => r.id === newRoom.id);
         if (exists) return prev;
+        subscribeRoomForUnread(newRoom.id);
         return [...prev, newRoom];
       });
     });
@@ -37,13 +63,25 @@ export function useRooms(username) {
       channelRef.current.unsubscribe();
       channelRef.current = null;
     }
+    Object.values(roomChannels.current).forEach(ch => ch.unsubscribe());
+    roomChannels.current = {};
   };
 
-  useEffect(() => {
-    loadRooms();
-    subscribeAbly();
-    return () => unsubscribeAbly();
-  }, [username]);
+  const loadRooms = async () => {
+    try {
+      const data = await ChatService.fetchRooms(username);
+      setRooms(data);
+      data.forEach(room => subscribeRoomForUnread(room.id));
+    } catch (err) {
+      console.error('Failed to load rooms:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearUnread = (roomId) => {
+    setUnreadCounts(prev => ({ ...prev, [roomId]: 0 }));
+  };
 
   const addRoom = (room) => {
     setRooms(prev => {
@@ -53,5 +91,11 @@ export function useRooms(username) {
     });
   };
 
-  return { rooms, loading, addRoom };
+  useEffect(() => {
+    loadRooms();
+    subscribeAbly();
+    return () => unsubscribeAbly();
+  }, [username]);
+
+  return { rooms, loading, unreadCounts, clearUnread, addRoom };
 }

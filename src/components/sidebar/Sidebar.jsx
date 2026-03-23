@@ -4,9 +4,23 @@ import { useRooms } from '../../hooks/useRooms';
 import { RoomList } from './RoomList';
 import { Avatar } from '../common/Avatar';
 
-export function Sidebar({ activeRoomId, onSelectRoom, onNewChat, onNewGroup, onLogout }) {
+export function Sidebar({
+  activeRoomId,
+  onSelectRoom,
+  onNewChat,
+  onNewGroup,
+  onLogout,
+}) {
   const { user } = useAuth();
-  const { rooms, loading } = useRooms(user.username);
+  const { rooms, loading, unreadCounts, clearUnread } = useRooms(
+    user.username,
+    activeRoomId
+  );
+
+  const handleSelectRoom = (room) => {
+    clearUnread(room.id);  // clear badge when room is opened
+    onSelectRoom(room);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -37,19 +51,19 @@ export function Sidebar({ activeRoomId, onSelectRoom, onNewChat, onNewGroup, onL
         </div>
       </div>
 
-      {/* Room list */}
       <RoomList
         rooms={rooms}
         loading={loading}
         activeRoomId={activeRoomId}
-        onSelectRoom={onSelectRoom}
+        onSelectRoom={handleSelectRoom}
         currentUser={user.username}
+        unreadCounts={unreadCounts}
       />
 
       {/* User footer */}
       <div className="flex items-center gap-3 px-4 py-3
                       border-t border-gray-100 flex-shrink-0">
-        <Avatar name={user.username} color="blue" size="sm" />
+        <Avatar name={user.username} size="sm" />
         <span className="text-sm font-medium text-gray-700 flex-1 truncate">
           {user.username}
         </span>
