@@ -1,8 +1,6 @@
 import domo from "ryuu.js";
 import { getAbly } from "../lib/ably";
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-
 const BASE_URL = "/domo/datastores/v1";
 
 const COLLECTIONS = {
@@ -11,14 +9,10 @@ const COLLECTIONS = {
   MESSAGES: "ChatMessages",
 };
 
-// ─── HASH HELPER ─────────────────────────────────────────────────────────────
-
 const simpleHash = (str) =>
   Array.from(str)
     .reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0)
     .toString(36);
-
-// ─── REUSABLE DATASTORE HELPERS ──────────────────────────────────────────────
 
 const collectionURL = (collection) =>
   `${BASE_URL}/collections/${collection}/documents`;
@@ -55,8 +49,6 @@ const deleteDoc = (collection, id) =>
       throw err;
     });
 
-// ─── REUSABLE SHAPE BUILDERS ─────────────────────────────────────────────────
-
 const toUser = (doc) => ({
   id: doc.id,
   username: doc.content.username,
@@ -79,7 +71,7 @@ const publishToRoom = (roomId, event, data) => {
   try {
     getAbly().channels.get(`room-${roomId}`).publish(event, data);
   } catch (err) {
-    console.error(`[publishToRoom:${roomId}]`, err);
+    console.error(`[publishToRoom:${roomId}:${event}]`, err);
   }
 };
 
@@ -90,7 +82,7 @@ const publishToUsers = (usernames, event, data) => {
       ably.channels.get(`user-${username}`).publish(event, data);
     });
   } catch (err) {
-    console.error(`[publishToUsers]`, err);
+    console.error(`[publishToUsers:${event}]`, err);
   }
 };
 
@@ -149,10 +141,7 @@ export const createDMAPI = (userA, userB) => {
         createdAt: new Date().toISOString(),
       }).then((res) => {
         const room = { ...toRoom(res), members: [userA, userB] };
-
-        // Notify both users instantly — sidebar updates without polling
         publishToUsers([userA, userB], "new-room", room);
-
         return room;
       });
     });
@@ -167,10 +156,7 @@ export const createGroupAPI = (groupName, members, createdBy) =>
     createdAt: new Date().toISOString(),
   }).then((res) => {
     const room = { ...toRoom(res), members };
-
-    // Notify all group members instantly — sidebar updates without polling
     publishToUsers(members, "new-room", room);
-
     return room;
   });
 
@@ -196,13 +182,17 @@ export const sendMessageAPI = ({ sender, message, roomId }) =>
   })
     .then(toMessage)
     .then((saved) => {
-      // Publish to room channel — all subscribers receive instantly
       publishToRoom(roomId, "new-message", saved);
       return saved;
     });
 
-export const deleteMessageAPI = (id) =>
-  deleteDoc(COLLECTIONS.MESSAGES, id).then(() => id);
+// roomId is required so Ably can notify the correct channel
+export const deleteMessageAPI = (id, roomId) =>
+  deleteDoc(COLLECTIONS.MESSAGES, id)
+    .then(() => {
+      publishToRoom(roomId, "delete-message", { id });
+      return id;
+    });
 
 export const editMessageAPI = (id, newMessage, originalMsg) =>
   deleteDoc(COLLECTIONS.MESSAGES, id)
@@ -216,6 +206,10 @@ export const editMessageAPI = (id, newMessage, originalMsg) =>
       })
     )
     .then(toMessage)
+    .then((saved) => {
+      publishToRoom(originalMsg.roomId, "edit-message", saved);
+      return saved;
+    })
     .catch((err) => {
       console.error("Edit failed:", err);
       throw err;

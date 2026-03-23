@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { ChatService } from '../../services/chatService';
 
 export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
-  const [isEditing, setIsEditing]       = useState(false);
-  const [editText, setEditText]         = useState(msg.message);
-  const [showActions, setShowActions]   = useState(false);
-  const [showConfirm, setShowConfirm]   = useState(false); 
+  const [isEditing, setIsEditing]     = useState(false);
+  const [editText, setEditText]       = useState(msg.message);
+  const [showActions, setShowActions] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleDelete = async () => {
-    await ChatService.deleteMessage(msg.id);
+    // Pass msg.roomId so Ably publishes to the correct channel
+    // Works for both group rooms and DM rooms
+    await ChatService.deleteMessage(msg.id, msg.roomId);
     onDelete(msg.id);
     setShowConfirm(false);
   };
@@ -17,7 +19,11 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
     if (!editText.trim()) return;
     try {
       setIsEditing(false);
-      const updated = await ChatService.editMessage(msg.id, editText.trim(), msg);
+      const updated = await ChatService.editMessage(
+        msg.id,
+        editText.trim(),
+        msg  // contains roomId — used by Ably to notify correct channel
+      );
       onEdit(msg.id, editText.trim(), updated.id);
     } catch {
       setIsEditing(true);
@@ -29,9 +35,8 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
     <div
       className={`flex flex-col mb-3 ${isOwn ? 'items-end' : 'items-start'}`}
       onMouseEnter={() => isOwn && setShowActions(true)}
-      onMouseLeave={() => { setShowActions(false); }}
+      onMouseLeave={() => setShowActions(false)}
     >
-      {/* Sender name */}
       {!isOwn && (
         <span className="text-xs text-gray-400 mb-1 ml-1 font-medium">
           {msg.sender}
@@ -46,21 +51,21 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
             <button
               onClick={() => setIsEditing(true)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               Edit
             </button>
             <button
               onClick={() => setShowConfirm(true)}
               className="text-xs bg-red-50 hover:bg-red-100
-                        text-red-400 px-2 py-1 rounded-lg transition-colors"
+                         text-red-400 px-2 py-1 rounded-lg transition-colors"
             >
               Delete
             </button>
           </div>
         )}
 
-        {/* Inline confirm — replaces window.confirm */}
+        {/* Inline confirm — no window.confirm (blocked by Domo sandbox) */}
         {showConfirm && (
           <div className="flex items-center gap-2 mb-1 bg-red-50
                           border border-red-100 rounded-xl px-3 py-2">
@@ -70,14 +75,14 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
             <button
               onClick={handleDelete}
               className="text-xs bg-red-500 hover:bg-red-600
-                        text-white px-2 py-1 rounded-lg transition-colors"
+                         text-white px-2 py-1 rounded-lg transition-colors"
             >
               Yes
             </button>
             <button
               onClick={() => setShowConfirm(false)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               No
             </button>
@@ -89,8 +94,8 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
           <div className="flex flex-col gap-2 max-w-xs w-full">
             <input
               className="px-3 py-2 rounded-xl border border-blue-300
-                        text-sm focus:outline-none focus:ring-2
-                        focus:ring-blue-400 w-full"
+                         text-sm focus:outline-none focus:ring-2
+                         focus:ring-blue-400 w-full"
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => {
@@ -109,14 +114,13 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
               <button
                 onClick={handleEdit}
                 className="text-xs bg-blue-500 hover:bg-blue-600
-                          text-white px-3 py-1 rounded-lg transition-colors"
+                           text-white px-3 py-1 rounded-lg transition-colors"
               >
                 Save
               </button>
             </div>
           </div>
         ) : (
-          /* Normal bubble */
           !showConfirm && (
             <div className={`
               max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm shadow-sm
@@ -134,7 +138,6 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
         )}
       </div>
 
-      {/* Timestamp */}
       {!showConfirm && (
         <span className="text-xs text-gray-400 mt-1 mx-1">
           {new Date(msg.timestamp).toLocaleTimeString([], {

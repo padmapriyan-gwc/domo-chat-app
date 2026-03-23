@@ -25,6 +25,7 @@ export function useMessages(roomId) {
     const channel = getChannel(roomId);
     channelRef.current = channel;
 
+    // New message received
     channel.subscribe('new-message', (ablyMsg) => {
       const incoming = ablyMsg.data;
       setMessages(prev => {
@@ -37,6 +38,20 @@ export function useMessages(roomId) {
         if (exists) return prev;
         return [...prev, incoming];
       });
+    });
+
+    // Message deleted — remove from all users instantly
+    channel.subscribe('delete-message', (ablyMsg) => {
+      const { id } = ablyMsg.data;
+      setMessages(prev => prev.filter(m => m.id !== id));
+    });
+
+    // Message edited — update for all users instantly
+    channel.subscribe('edit-message', (ablyMsg) => {
+      const updated = ablyMsg.data;
+      setMessages(prev =>
+        prev.map(m => m.id === updated.id ? updated : m)
+      );
     });
   };
 
@@ -67,19 +82,18 @@ export function useMessages(roomId) {
 
     const saved = await ChatService.sendMessage(msg);
 
-    if (channelRef.current) {
-      channelRef.current.publish('new-message', saved);
-    }
-
+    // Replace temp with real saved message
     setMessages(prev =>
       prev.map(m => m.id === temp.id ? saved : m)
     );
   };
 
+  // Local delete — Ably handles other users via subscribe above
   const deleteMessage = (id) => {
     setMessages(prev => prev.filter(m => m.id !== id));
   };
 
+  // Local edit — Ably handles other users via subscribe above
   const editMessage = (oldId, newText, newId) => {
     pauseRef.current = true;
     setMessages(prev =>
