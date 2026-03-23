@@ -207,7 +207,12 @@ export const editMessageAPI = (id, newMessage, originalMsg) =>
     )
     .then(toMessage)
     .then((saved) => {
-      publishToRoom(originalMsg.roomId, "edit-message", saved);
+      // Send oldId so other users can find and replace the correct message
+      publishToRoom(originalMsg.roomId, "edit-message", {
+        oldId: id,        // ← the id other users have in their state
+        newId: saved.id,  // ← the new id after recreate
+        ...saved,
+      });
       return saved;
     })
     .catch((err) => {

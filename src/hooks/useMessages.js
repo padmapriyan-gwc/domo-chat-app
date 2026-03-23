@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { ChatService } from '../services/chatService';
-import { getChannel } from '../lib/ably';
+import { useState, useEffect, useRef } from "react";
+import { ChatService } from "../services/chatService";
+import { getChannel } from "../lib/ably";
 
 export function useMessages(roomId) {
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [online, setOnline]     = useState(true);
-  const channelRef              = useRef(null);
-  const pauseRef                = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [online, setOnline] = useState(true);
+  const channelRef = useRef(null);
+  const pauseRef = useRef(false);
 
   const loadHistory = async () => {
     try {
@@ -26,14 +26,15 @@ export function useMessages(roomId) {
     channelRef.current = channel;
 
     // New message received
-    channel.subscribe('new-message', (ablyMsg) => {
+    channel.subscribe("new-message", (ablyMsg) => {
       const incoming = ablyMsg.data;
-      setMessages(prev => {
+      setMessages((prev) => {
         const exists = prev.some(
-          m => m.id === incoming.id ||
-          (m.sender === incoming.sender &&
-           m.timestamp === incoming.timestamp &&
-           m.message === incoming.message)
+          (m) =>
+            m.id === incoming.id ||
+            (m.sender === incoming.sender &&
+              m.timestamp === incoming.timestamp &&
+              m.message === incoming.message),
         );
         if (exists) return prev;
         return [...prev, incoming];
@@ -41,17 +42,15 @@ export function useMessages(roomId) {
     });
 
     // Message deleted — remove from all users instantly
-    channel.subscribe('delete-message', (ablyMsg) => {
+    channel.subscribe("delete-message", (ablyMsg) => {
       const { id } = ablyMsg.data;
-      setMessages(prev => prev.filter(m => m.id !== id));
+      setMessages((prev) => prev.filter((m) => m.id !== id));
     });
 
-    // Message edited — update for all users instantly
-    channel.subscribe('edit-message', (ablyMsg) => {
-      const updated = ablyMsg.data;
-      setMessages(prev =>
-        prev.map(m => m.id === updated.id ? updated : m)
-      );
+    // Message edited — match by oldId, replace with full updated message
+    channel.subscribe("edit-message", (ablyMsg) => {
+      const { oldId, ...updated } = ablyMsg.data;
+      setMessages((prev) => prev.map((m) => (m.id === oldId ? updated : m)));
     });
   };
 
@@ -78,32 +77,32 @@ export function useMessages(roomId) {
       roomId,
     };
     const temp = { ...msg, id: `temp-${Date.now()}` };
-    setMessages(prev => [...prev, temp]);
+    setMessages((prev) => [...prev, temp]);
 
     const saved = await ChatService.sendMessage(msg);
 
     // Replace temp with real saved message
-    setMessages(prev =>
-      prev.map(m => m.id === temp.id ? saved : m)
-    );
+    setMessages((prev) => prev.map((m) => (m.id === temp.id ? saved : m)));
   };
 
   // Local delete — Ably handles other users via subscribe above
   const deleteMessage = (id) => {
-    setMessages(prev => prev.filter(m => m.id !== id));
+    setMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
   // Local edit — Ably handles other users via subscribe above
   const editMessage = (oldId, newText, newId) => {
     pauseRef.current = true;
-    setMessages(prev =>
-      prev.map(m =>
+    setMessages((prev) =>
+      prev.map((m) =>
         m.id === oldId
-          ? { ...m, id: newId, message: newText, edited: 'true' }
-          : m
-      )
+          ? { ...m, id: newId, message: newText, edited: "true" }
+          : m,
+      ),
     );
-    setTimeout(() => { pauseRef.current = false; }, 3000);
+    setTimeout(() => {
+      pauseRef.current = false;
+    }, 3000);
   };
 
   return {
