@@ -26,6 +26,7 @@ export const NewChatModal = ({ onClose, onRoomCreated }) => {
       const room = await ChatService.createDM(user.username, targetUsername);
       onRoomCreated(room);
       onClose();
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Failed to start chat');
     } finally {
@@ -48,7 +49,7 @@ export const NewChatModal = ({ onClose, onRoomCreated }) => {
 
         <input
           className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4"
+                    focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4"
           placeholder="Search users..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -67,7 +68,7 @@ export const NewChatModal = ({ onClose, onRoomCreated }) => {
                 onClick={() => handleStartDM(u.username)}
                 disabled={creating}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
-                           hover:bg-gray-50 transition-colors text-left"
+                          hover:bg-gray-50 transition-colors text-left"
               >
                 <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-600
                                 flex items-center justify-center text-sm font-semibold">

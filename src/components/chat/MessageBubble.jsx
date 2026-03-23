@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { ChatService } from '../../services/chatService';
 
 export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
-  const [isEditing, setIsEditing]     = useState(false);
-  const [editText, setEditText]       = useState(msg.message);
-  const [showActions, setShowActions] = useState(false);
+  const [isEditing, setIsEditing]       = useState(false);
+  const [editText, setEditText]         = useState(msg.message);
+  const [showActions, setShowActions]   = useState(false);
+  const [showConfirm, setShowConfirm]   = useState(false); 
 
   const handleDelete = async () => {
-    if (window.confirm('Delete this message?')) {
-      await ChatService.deleteMessage(msg.id);
-      onDelete(msg.id);
-    }
+    await ChatService.deleteMessage(msg.id);
+    onDelete(msg.id);
+    setShowConfirm(false);
   };
 
   const handleEdit = async () => {
@@ -29,9 +29,9 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
     <div
       className={`flex flex-col mb-3 ${isOwn ? 'items-end' : 'items-start'}`}
       onMouseEnter={() => isOwn && setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseLeave={() => { setShowActions(false); }}
     >
-      {/* Sender name — only for other users */}
+      {/* Sender name */}
       {!isOwn && (
         <span className="text-xs text-gray-400 mb-1 ml-1 font-medium">
           {msg.sender}
@@ -39,22 +39,47 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
       )}
 
       <div className="flex items-end gap-2">
-        {/* Edit / Delete — hover on your own messages */}
-        {isOwn && showActions && !isEditing && (
+
+        {/* Edit / Delete buttons */}
+        {isOwn && showActions && !isEditing && !showConfirm && (
           <div className="flex gap-1 mb-1">
             <button
               onClick={() => setIsEditing(true)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               Edit
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setShowConfirm(true)}
               className="text-xs bg-red-50 hover:bg-red-100
-                         text-red-400 px-2 py-1 rounded-lg transition-colors"
+                        text-red-400 px-2 py-1 rounded-lg transition-colors"
             >
               Delete
+            </button>
+          </div>
+        )}
+
+        {/* Inline confirm — replaces window.confirm */}
+        {showConfirm && (
+          <div className="flex items-center gap-2 mb-1 bg-red-50
+                          border border-red-100 rounded-xl px-3 py-2">
+            <span className="text-xs text-red-500 font-medium">
+              Delete this message?
+            </span>
+            <button
+              onClick={handleDelete}
+              className="text-xs bg-red-500 hover:bg-red-600
+                        text-white px-2 py-1 rounded-lg transition-colors"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="text-xs bg-gray-100 hover:bg-gray-200
+                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
+            >
+              No
             </button>
           </div>
         )}
@@ -64,8 +89,8 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
           <div className="flex flex-col gap-2 max-w-xs w-full">
             <input
               className="px-3 py-2 rounded-xl border border-blue-300
-                         text-sm focus:outline-none focus:ring-2
-                         focus:ring-blue-400 w-full"
+                        text-sm focus:outline-none focus:ring-2
+                        focus:ring-blue-400 w-full"
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => {
@@ -84,7 +109,7 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
               <button
                 onClick={handleEdit}
                 className="text-xs bg-blue-500 hover:bg-blue-600
-                           text-white px-3 py-1 rounded-lg transition-colors"
+                          text-white px-3 py-1 rounded-lg transition-colors"
               >
                 Save
               </button>
@@ -92,27 +117,31 @@ export function MessageBubble({ msg, isOwn, onDelete, onEdit }) {
           </div>
         ) : (
           /* Normal bubble */
-          <div className={`
-            max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm shadow-sm
-            ${isOwn
-              ? 'bg-blue-500 text-white rounded-br-none'
-              : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
-            }
-          `}>
-            {msg.message}
-            {msg.edited === 'true' && (
-              <span className="text-xs opacity-60 ml-2">(edited)</span>
-            )}
-          </div>
+          !showConfirm && (
+            <div className={`
+              max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm shadow-sm
+              ${isOwn
+                ? 'bg-blue-500 text-white rounded-br-none'
+                : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+              }
+            `}>
+              {msg.message}
+              {msg.edited === 'true' && (
+                <span className="text-xs opacity-60 ml-2">(edited)</span>
+              )}
+            </div>
+          )
         )}
       </div>
 
       {/* Timestamp */}
-      <span className="text-xs text-gray-400 mt-1 mx-1">
-        {new Date(msg.timestamp).toLocaleTimeString([], {
-          hour: '2-digit', minute: '2-digit',
-        })}
-      </span>
+      {!showConfirm && (
+        <span className="text-xs text-gray-400 mt-1 mx-1">
+          {new Date(msg.timestamp).toLocaleTimeString([], {
+            hour: '2-digit', minute: '2-digit',
+          })}
+        </span>
+      )}
     </div>
   );
 }
