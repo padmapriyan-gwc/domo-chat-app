@@ -1,4 +1,5 @@
 import domo from "ryuu.js";
+import { getAbly } from "../lib/ably";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
@@ -17,15 +18,7 @@ const simpleHash = (str) =>
     .reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0)
     .toString(36);
 
-// ─── REUSABLE DATASTORE HELPERS ───────────────────────────────────────────────
-//
-//  These wrap the raw domo calls so the rest of the file reads like plain
-//  English and every collection is accessed the same way.
-//
-//  createDoc    → POST   .../documents/
-//  listDocs     → GET    .../documents/
-//  queryDocs    → POST   .../documents/query   (filter by field)
-//  deleteDoc    → DELETE .../documents/bulk?ids=<id>
+// ─── REUSABLE DATASTORE HELPERS ──────────────────────────────────────────────
 
 const collectionURL = (collection) =>
   `${BASE_URL}/collections/${collection}/documents`;
@@ -62,11 +55,7 @@ const deleteDoc = (collection, id) =>
       throw err;
     });
 
-// ─── REUSABLE SHAPE BUILDERS ──────────────────────────────────────────────────
-//
-//  These convert raw Domo document responses into the clean shapes
-//  the rest of the app consumes.
-//
+// ─── REUSABLE SHAPE BUILDERS ─────────────────────────────────────────────────
 
 const toUser = (doc) => ({
   id: doc.id,
@@ -83,6 +72,27 @@ const toMessage = (doc) => ({
   ...doc.content,
   id: doc.id,
 });
+
+// ─── ABLY HELPERS ────────────────────────────────────────────────────────────
+
+const publishToRoom = (roomId, event, data) => {
+  try {
+    getAbly().channels.get(`room-${roomId}`).publish(event, data);
+  } catch (err) {
+    console.error(`[publishToRoom:${roomId}]`, err);
+  }
+};
+
+const publishToUsers = (usernames, event, data) => {
+  try {
+    const ably = getAbly();
+    usernames.forEach(username => {
+      ably.channels.get(`user-${username}`).publish(event, data);
+    });
+  } catch (err) {
+    console.error(`[publishToUsers]`, err);
+  }
+};
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
@@ -129,17 +139,22 @@ export const createDMAPI = (userA, userB) => {
 
   return queryDocs(COLLECTIONS.ROOMS, { "content.name": { $eq: roomName } })
     .then((existing) => {
-      // DM already exists — return it as-is
       if (existing?.length > 0) return toRoom(existing[0]);
 
-      // Create a new DM room
       return createDoc(COLLECTIONS.ROOMS, {
         name: roomName,
         type: "dm",
         members: JSON.stringify([userA, userB]),
         createdBy: userA,
         createdAt: new Date().toISOString(),
-      }).then((res) => ({ ...toRoom(res), members: [userA, userB] }));
+      }).then((res) => {
+        const room = { ...toRoom(res), members: [userA, userB] };
+
+        // Notify both users instantly — sidebar updates without polling
+        publishToUsers([userA, userB], "new-room", room);
+
+        return room;
+      });
     });
 };
 
@@ -150,7 +165,14 @@ export const createGroupAPI = (groupName, members, createdBy) =>
     members: JSON.stringify(members),
     createdBy,
     createdAt: new Date().toISOString(),
-  }).then((res) => ({ ...toRoom(res), members }));
+  }).then((res) => {
+    const room = { ...toRoom(res), members };
+
+    // Notify all group members instantly — sidebar updates without polling
+    publishToUsers(members, "new-room", room);
+
+    return room;
+  });
 
 // ─── MESSAGES ────────────────────────────────────────────────────────────────
 
@@ -171,7 +193,13 @@ export const sendMessageAPI = ({ sender, message, roomId }) =>
     timestamp: new Date().toISOString(),
     roomId,
     edited: "false",
-  }).then(toMessage);
+  })
+    .then(toMessage)
+    .then((saved) => {
+      // Publish to room channel — all subscribers receive instantly
+      publishToRoom(roomId, "new-message", saved);
+      return saved;
+    });
 
 export const deleteMessageAPI = (id) =>
   deleteDoc(COLLECTIONS.MESSAGES, id).then(() => id);
