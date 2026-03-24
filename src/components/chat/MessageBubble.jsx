@@ -62,14 +62,14 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
             <button
               onClick={() => setIsEditing(true)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               Edit
             </button>
             <button
               onClick={() => setShowConfirm(true)}
               className="text-xs bg-red-50 hover:bg-red-100
-                         text-red-400 px-2 py-1 rounded-lg transition-colors"
+                        text-red-400 px-2 py-1 rounded-lg transition-colors"
             >
               Delete
             </button>
@@ -86,14 +86,14 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
             <button
               onClick={handleDelete}
               className="text-xs bg-red-500 hover:bg-red-600
-                         text-white px-2 py-1 rounded-lg transition-colors"
+                        text-white px-2 py-1 rounded-lg transition-colors"
             >
               Yes
             </button>
             <button
               onClick={() => setShowConfirm(false)}
               className="text-xs bg-gray-100 hover:bg-gray-200
-                         text-gray-500 px-2 py-1 rounded-lg transition-colors"
+                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
             >
               No
             </button>
@@ -105,8 +105,8 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
           <div className="flex flex-col gap-2 max-w-xs w-full">
             <input
               className="px-3 py-2 rounded-xl border border-blue-300
-                         text-sm focus:outline-none focus:ring-2
-                         focus:ring-blue-400 w-full"
+                        text-sm focus:outline-none focus:ring-2
+                        focus:ring-blue-400 w-full"
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => {
@@ -125,7 +125,7 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
               <button
                 onClick={handleEdit}
                 className="text-xs bg-blue-500 hover:bg-blue-600
-                           text-white px-3 py-1 rounded-lg transition-colors"
+                          text-white px-3 py-1 rounded-lg transition-colors"
               >
                 Save
               </button>

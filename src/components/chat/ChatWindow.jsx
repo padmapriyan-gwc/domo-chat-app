@@ -41,6 +41,7 @@ export function ChatWindow({ room, onBack }) {
     let lastDate   = null;
     let lastSender = null;
 
+    // eslint-disable-next-line no-unused-vars
     messages.forEach((msg, index) => {
       const msgDate = formatDateSeparator(msg.timestamp);
 
