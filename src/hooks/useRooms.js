@@ -10,26 +10,20 @@ export function useRooms(username, activeRoomId) {
   const channelRef = useRef(null);
   const roomChannels = useRef({});
 
-  // keep latest active room
   const activeRoomIdRef = useRef(activeRoomId);
   useEffect(() => {
     activeRoomIdRef.current = activeRoomId;
   }, [activeRoomId]);
 
-  // reset unread when opening room
+  // Reset unread when opening room
   useEffect(() => {
     if (activeRoomId) {
-      setUnreadCounts((prev) => ({
-        ...prev,
-        [activeRoomId]: 0,
-      }));
+      setUnreadCounts((prev) => ({ ...prev, [activeRoomId]: 0 }));
     }
   }, [activeRoomId]);
 
-  // 🔥 SUBSCRIBE
   const subscribeRoomForUnread = (roomId) => {
     if (!username || !roomId) return;
-
     if (roomChannels.current[roomId]) return;
 
     const channel = getChannel(roomId, username);
@@ -37,12 +31,8 @@ export function useRooms(username, activeRoomId) {
 
     roomChannels.current[roomId] = channel;
 
-    // ✅ NEW MESSAGE
     const handleNewMessage = (ablyMsg) => {
       const incoming = ablyMsg.data;
-
-      console.log("UNREAD EVENT:", incoming);
-
       if (incoming.sender === username) return;
       if (activeRoomIdRef.current === roomId) return;
 
@@ -52,16 +42,10 @@ export function useRooms(username, activeRoomId) {
       }));
     };
 
-    // 🔥 FIXED DELETE HANDLER
+    // ✅ FIX #2: payload is { id } only, no sender field
     const handleDelete = (ablyMsg) => {
-      const deleted = ablyMsg.data;
-
-      if (!deleted) return;
-
-      // ❗ ignore own deletes
-      if (deleted.sender === username) return;
-
-      // ❗ ignore active room
+      const { id } = ablyMsg.data;
+      if (!id) return;
       if (activeRoomIdRef.current === roomId) return;
 
       setUnreadCounts((prev) => ({
@@ -73,13 +57,11 @@ export function useRooms(username, activeRoomId) {
     channel.subscribe("new-message", handleNewMessage);
     channel.subscribe("delete-message", handleDelete);
 
-    // reconnect log (no logic change)
     channel.on("attached", () => {
       console.log("Channel reattached:", roomId);
     });
   };
 
-  // 🔹 user channel
   const subscribeAbly = () => {
     if (!username) return;
 
@@ -95,36 +77,29 @@ export function useRooms(username, activeRoomId) {
       setRooms((prev) => {
         const exists = prev.some((r) => r.id === newRoom.id);
         if (exists) return prev;
-
         subscribeRoomForUnread(newRoom.id);
         return [...prev, newRoom];
       });
     });
   };
 
-  // 🔹 cleanup
   const unsubscribeAbly = () => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
       channelRef.current = null;
     }
-
-    Object.values(roomChannels.current).forEach((ch) => {
-      ch.unsubscribe();
-    });
-
+    Object.values(roomChannels.current).forEach((ch) => ch.unsubscribe());
     roomChannels.current = {};
   };
 
-  // 🔹 load rooms
   const loadRooms = async () => {
     try {
       const data = await ChatService.fetchRooms(username);
       setRooms(data);
 
-      data.forEach((room) => {
-        subscribeRoomForUnread(room.id);
-      });
+      // ✅ FIX #3: subscribe general room too
+      subscribeRoomForUnread("general");
+      data.forEach((room) => subscribeRoomForUnread(room.id));
     } catch (err) {
       console.error("Failed to load rooms:", err);
     } finally {
@@ -132,22 +107,16 @@ export function useRooms(username, activeRoomId) {
     }
   };
 
-  // 🔹 main effect
+  // ✅ FIX #1: subscribeAbly first so Ably is ready before loadRooms
   useEffect(() => {
     if (!username) return;
-
-    loadRooms();
     subscribeAbly();
-
+    loadRooms();
     return () => unsubscribeAbly();
   }, [username]);
 
-  // 🔹 helpers
   const clearUnread = (roomId) => {
-    setUnreadCounts((prev) => ({
-      ...prev,
-      [roomId]: 0,
-    }));
+    setUnreadCounts((prev) => ({ ...prev, [roomId]: 0 }));
   };
 
   const addRoom = (room) => {
@@ -158,11 +127,5 @@ export function useRooms(username, activeRoomId) {
     });
   };
 
-  return {
-    rooms,
-    loading,
-    unreadCounts,
-    clearUnread,
-    addRoom,
-  };
+  return { rooms, loading, unreadCounts, clearUnread, addRoom };
 }

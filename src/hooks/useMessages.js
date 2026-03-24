@@ -147,19 +147,42 @@ export function useMessages(roomId, currentUser) {
     }
   };
 
-  const deleteMessage = (id) => {
-    setMessages((prev) => prev.filter((m) => m.id !== id));
-  };
+const deleteMessage = async (id) => {
+  // 1. Update local state immediately (optimistic)
+  setMessages((prev) => prev.filter((m) => m.id !== id));
 
-  const editMessage = (oldId, newText, newId) => {
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === oldId
-          ? { ...m, id: newId, message: newText, edited: "true" }
-          : m
-      )
-    );
-  };
+  // 2. Delete from DB
+  await ChatService.deleteMessage(id);
+
+  // 3. Broadcast to all other clients via Ably
+  if (channelRef.current) {
+    channelRef.current.publish("delete-message", { id });
+  }
+};
+
+const editMessage = async (oldId, newText, newId) => {
+  // 1. Optimistic update
+  setMessages((prev) =>
+    prev.map((m) =>
+      m.id === oldId
+        ? { ...m, id: newId, message: newText, edited: "true" }
+        : m
+    )
+  );
+
+  // 2. Save to DB
+  await ChatService.editMessage(oldId, newText, newId);
+
+  // 3. Broadcast
+  if (channelRef.current) {
+    channelRef.current.publish("edit-message", {
+      oldId,
+      id: newId,
+      message: newText,
+      edited: "true",
+    });
+  }
+};
 
   return {
     messages,
