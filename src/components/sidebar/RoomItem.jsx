@@ -16,9 +16,8 @@ export function RoomItem({ room, isActive, onClick, currentUser, unreadCount = 0
       className={`w-full flex items-center gap-3 px-3 py-2.5
                   rounded-xl transition-all duration-150 text-left
                   ${isActive
-                    ? 'bg-purple-50'
-                    : 'hover:bg-gray-50'}`}
-    >
+                    ? 'bg-violet-100 border-violet-400'
+                    : 'hover:scale-[1.01]'}`}>
       {/* Avatar with online dot */}
       <div className="relative flex-shrink-0">
         <div className={`w-10 h-10 rounded-full flex items-center
@@ -36,7 +35,7 @@ export function RoomItem({ room, isActive, onClick, currentUser, unreadCount = 0
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1">
           <span className={`text-sm font-semibold truncate
-                            ${isActive ? 'text-purple-600' : 'text-gray-800'}`}>
+                            ${isActive ? 'text-purple-600' : 'text-gray-500'}`}>
             {isGroup && (
               <span className="text-gray-400 mr-1 text-xs">⊞</span>
             )}

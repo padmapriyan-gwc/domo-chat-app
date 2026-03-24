@@ -33,9 +33,9 @@ export function Sidebar({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-gradient-to-b from-violet-50 to-pink-50 border-r border-gray-200">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 flex-shrink-0">
+      <div className="px-4 pt-4 pb-3 shrink-0">
         {/* Top row */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -47,9 +47,8 @@ export function Sidebar({
           <div className="flex items-center gap-0.5">
             <button
               className="btn-icon w-9 h-9 rounded-xl flex items-center justify-center
-                    text-black/50 hover:text-black
-                    hover:bg-black/10 active:scale-95
-                      transition-all duration-200"
+                        text-gray-500 hover:text-violet-600
+                        hover:bg-violet-100 active:scale-95 transition-all"
               onClick={onNewChat}
               title="New DM (Ctrl+K)"
             >
@@ -59,10 +58,8 @@ export function Sidebar({
               onClick={onNewGroup}
               title="New group (Ctrl+G)"
               className="btn-icon w-9 h-9 rounded-xl flex items-center justify-center
-                    text-black/50 hover:text-black
-                    hover:bg-black/10 active:scale-95
-                      transition-all duration-200"
-            >
+                        text-gray-500 hover:text-violet-600
+                        hover:bg-violet-100 active:scale-95 transition-all">
               <Users size={18} />
             </button>
           </div>
@@ -85,11 +82,13 @@ export function Sidebar({
             />
           </svg>
           <input
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-100
-                      text-sm text-gray-700 placeholder-gray-400
-                      focus:outline-none focus:ring-2 focus:ring-purple-300/50
-                      focus:bg-white border border-transparent
-                      focus:border-purple-200 transition-all"
+            // className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-100
+            //           text-sm text-gray-700 placeholder-gray-400
+            //           focus:outline-none focus:ring-2 focus:ring-purple-300/50
+            //           focus:bg-white border border-transparent
+            //           focus:border-purple-200 transition-all"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 placeholder-gray-400
+                      focus:outline-none focus:ring-2 focus:ring-violet-400 transition-all"
             placeholder="Search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -97,18 +96,18 @@ export function Sidebar({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-xl bg-gray-100">
+        <div className="flex gap-1 p-1 rounded-xl bg-gray-100 border border-gray-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold
-                          transition-all duration-150
-                          ${
-                            activeTab === tab.id
-                              ? "bg-white text-purple-600 shadow-sm"
-                              : "text-gray-400 hover:text-gray-600"
-                          }`}
+                  transition-all duration-150
+                  ${
+                    activeTab === tab.id
+                      ? "bg-gradient-to-r from-violet-100 to-pink-100 text-gray-500 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-white"
+                  }`}
             >
               {tab.label}
             </button>
@@ -129,7 +128,8 @@ export function Sidebar({
       />
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100 flex-shrink-0">
+      <div className="flex flex-row px-4 py-3 border-t border-pink-50 flex-shrink-0">
+        {/* <p className="text-[10px] mt-2.5 text-red-400 hover:text-red-300">Logout</p> */}
         <button
           onClick={onLogout}
           title="Logout"

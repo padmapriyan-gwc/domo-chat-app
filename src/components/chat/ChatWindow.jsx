@@ -123,7 +123,8 @@ export function ChatWindow({ room, onBack }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 bg-white">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 bg-slate-50">
+        
         {loading ? (
           <LoadingSpinner text="Loading messages..." />
         ) : messages.length === 0 ? (
