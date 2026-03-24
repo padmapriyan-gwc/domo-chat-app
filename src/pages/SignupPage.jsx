@@ -46,10 +46,10 @@ export default function SignupPage() {
 
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm
+            <div className="w-12 h-8 rounded-lg bg-white/20 backdrop-blur-sm
                             flex items-center justify-center text-white
                             font-bold text-sm border border-white/30">
-              C
+              Domo
             </div>
             <span className="text-white/90 font-semibold text-base">ChatApp</span>
           </div>

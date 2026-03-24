@@ -85,12 +85,12 @@ export function RoomItem({
               ? 'Public channel'
               : room.type === 'group'
               ? `${room.members?.length || 0} members`
-              : 'Direct message'}
+              : 'Start conversation'}
           </p>
 
           {unreadCount > 0 && (
             <span
-              className="flex-shrink-0 min-w-[20px] h-5 px-1.5
+              className="shrink-0 min-w-5 h-5 px-1.5
                          rounded-full flex items-center justify-center
                          text-xs font-bold text-white"
               style={{

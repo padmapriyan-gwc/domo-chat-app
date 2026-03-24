@@ -23,7 +23,7 @@ export function MessageInput({ onSend, onTyping }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 flex-shrink-0
-                    bg-pink-100 border-t border-gray-100"
+                    bg-zinc-100 border-t border-gray-100"
     >
       {/* Input area */}
       <div

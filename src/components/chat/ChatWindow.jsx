@@ -86,7 +86,7 @@ export function ChatWindow({ room, onBack }) {
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3
-                      border-b border-gray-100 flex-shrink-0 bg-white"
+                      border-b border-gray-100 shrink-0 bg-violet-50"
       >
         <div className="flex items-center gap-3">
           {/* Mobile back */}
@@ -103,8 +103,8 @@ export function ChatWindow({ room, onBack }) {
           <div className="relative">
             <div
               className={`w-9 h-9 rounded-full flex items-center
-                             justify-center text-sm font-semibold
-                             text-white ${bg}`}
+                            justify-center text-sm font-semibold
+                            text-white ${bg}`}
             >
               {roomName[0]?.toUpperCase()}
             </div>
