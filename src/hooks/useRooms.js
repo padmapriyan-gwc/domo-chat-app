@@ -6,53 +6,42 @@ export function useRooms(username, activeRoomId) {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState({});
+
   const channelRef = useRef(null);
   const roomChannels = useRef({});
 
-  // Keep a ref of activeRoomId so Ably callbacks always
-  // read the latest value — not the stale closure value
+  // keep latest active room
   const activeRoomIdRef = useRef(activeRoomId);
   useEffect(() => {
     activeRoomIdRef.current = activeRoomId;
   }, [activeRoomId]);
 
-  // Clear unread when activeRoom changes
+  // reset unread when opening room
   useEffect(() => {
     if (activeRoomId) {
-      setUnreadCounts((prev) => ({ ...prev, [activeRoomId]: 0 }));
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [activeRoomId]: 0,
+      }));
     }
   }, [activeRoomId]);
 
-  // const subscribeRoomForUnread = (roomId) => {
-  //   if (roomChannels.current[roomId]) return;
-
-  //   const channel = getChannel(roomId);
-  //   roomChannels.current[roomId] = channel;
-
-  //   channel.subscribe('new-message', (ablyMsg) => {
-  //     const incoming = ablyMsg.data;
-  //     if (incoming.sender === username) return;
-
-  //     // Use ref — always has the latest activeRoomId value
-  //     if (activeRoomIdRef.current === roomId) return;
-
-  //     setUnreadCounts(prev => ({
-  //       ...prev,
-  //       [roomId]: (prev[roomId] || 0) + 1,
-  //     }));
-  //   });
-  // };
-
+  // 🔥 SUBSCRIBE
   const subscribeRoomForUnread = (roomId) => {
+    if (!username || !roomId) return;
+
     if (roomChannels.current[roomId]) return;
 
-    const channel = getChannel(roomId);
+    const channel = getChannel(roomId, username);
     if (!channel) return;
+
     roomChannels.current[roomId] = channel;
 
     // ✅ NEW MESSAGE
-    channel.subscribe("new-message", (ablyMsg) => {
+    const handleNewMessage = (ablyMsg) => {
       const incoming = ablyMsg.data;
+
+      console.log("UNREAD EVENT:", incoming);
 
       if (incoming.sender === username) return;
       if (activeRoomIdRef.current === roomId) return;
@@ -61,49 +50,81 @@ export function useRooms(username, activeRoomId) {
         ...prev,
         [roomId]: (prev[roomId] || 0) + 1,
       }));
-    });
+    };
 
-    // 🔥 FIX: HANDLE DELETE
-    channel.subscribe("delete-message", () => {
+    // 🔥 FIXED DELETE HANDLER
+    const handleDelete = (ablyMsg) => {
+      const deleted = ablyMsg.data;
+
+      if (!deleted) return;
+
+      // ❗ ignore own deletes
+      if (deleted.sender === username) return;
+
+      // ❗ ignore active room
+      if (activeRoomIdRef.current === roomId) return;
+
       setUnreadCounts((prev) => ({
         ...prev,
-        [roomId]: Math.max((prev[roomId] || 1) - 1, 0),
+        [roomId]: Math.max((prev[roomId] || 0) - 1, 0),
       }));
+    };
+
+    channel.subscribe("new-message", handleNewMessage);
+    channel.subscribe("delete-message", handleDelete);
+
+    // reconnect log (no logic change)
+    channel.on("attached", () => {
+      console.log("Channel reattached:", roomId);
     });
   };
 
+  // 🔹 user channel
   const subscribeAbly = () => {
-    if (!username) return; // ← add this guard
+    if (!username) return;
+
     const ably = getAbly(username);
-    if (!ably) return; // ← add this guard
+    if (!ably) return;
+
     const channel = ably.channels.get(`user-${username}`);
     channelRef.current = channel;
 
     channel.subscribe("new-room", (ablyMsg) => {
       const newRoom = ablyMsg.data;
+
       setRooms((prev) => {
         const exists = prev.some((r) => r.id === newRoom.id);
         if (exists) return prev;
+
         subscribeRoomForUnread(newRoom.id);
         return [...prev, newRoom];
       });
     });
   };
 
+  // 🔹 cleanup
   const unsubscribeAbly = () => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
       channelRef.current = null;
     }
-    Object.values(roomChannels.current).forEach((ch) => ch.unsubscribe());
+
+    Object.values(roomChannels.current).forEach((ch) => {
+      ch.unsubscribe();
+    });
+
     roomChannels.current = {};
   };
 
+  // 🔹 load rooms
   const loadRooms = async () => {
     try {
       const data = await ChatService.fetchRooms(username);
       setRooms(data);
-      data.forEach((room) => subscribeRoomForUnread(room.id));
+
+      data.forEach((room) => {
+        subscribeRoomForUnread(room.id);
+      });
     } catch (err) {
       console.error("Failed to load rooms:", err);
     } finally {
@@ -111,8 +132,22 @@ export function useRooms(username, activeRoomId) {
     }
   };
 
+  // 🔹 main effect
+  useEffect(() => {
+    if (!username) return;
+
+    loadRooms();
+    subscribeAbly();
+
+    return () => unsubscribeAbly();
+  }, [username]);
+
+  // 🔹 helpers
   const clearUnread = (roomId) => {
-    setUnreadCounts((prev) => ({ ...prev, [roomId]: 0 }));
+    setUnreadCounts((prev) => ({
+      ...prev,
+      [roomId]: 0,
+    }));
   };
 
   const addRoom = (room) => {
@@ -123,11 +158,11 @@ export function useRooms(username, activeRoomId) {
     });
   };
 
-  useEffect(() => {
-    loadRooms();
-    subscribeAbly();
-    return () => unsubscribeAbly();
-  }, [username]);
-
-  return { rooms, loading, unreadCounts, clearUnread, addRoom };
+  return {
+    rooms,
+    loading,
+    unreadCounts,
+    clearUnread,
+    addRoom,
+  };
 }

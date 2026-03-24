@@ -1,17 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { ChatService } from '../services/chatService';
-import { getChannel } from '../lib/ably';
-import { playNotificationSound } from '../utils/helpers';
+import { useState, useEffect, useRef } from "react";
+import { ChatService } from "../services/chatService";
+import { getChannel } from "../lib/ably";
+import { playNotificationSound } from "../utils/helpers";
 
 export function useMessages(roomId, currentUser) {
-  const [messages, setMessages]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [online, setOnline]         = useState(true);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [online, setOnline] = useState(true);
   const [typingUsers, setTypingUsers] = useState([]);
-  const channelRef                  = useRef(null);
-  const typingTimeouts              = useRef({});
-  const pauseRef                    = useRef(false);
 
+  const channelRef = useRef(null);
+  const typingTimeouts = useRef({});
+
+  // 🔹 LOAD HISTORY
   const loadHistory = async () => {
     try {
       const data = await ChatService.fetchMessages(roomId);
@@ -24,24 +25,26 @@ export function useMessages(roomId, currentUser) {
     }
   };
 
+  // 🔹 SUBSCRIBE TO ABLY
   const subscribeAbly = () => {
-    const channel = getChannel(roomId);
-    if (!channel) return; 
+    if (!roomId || !currentUser) return;
+
+    // ❗ Prevent duplicate subscriptions
+    if (channelRef.current) return;
+
+    const channel = getChannel(roomId, currentUser);
+    if (!channel) return;
+
     channelRef.current = channel;
 
-    // New message
-    channel.subscribe('new-message', (ablyMsg) => {
+    // ✅ NEW MESSAGE
+    channel.subscribe("new-message", (ablyMsg) => {
       const incoming = ablyMsg.data;
-      setMessages(prev => {
-        const exists = prev.some(
-          m => m.id === incoming.id ||
-          (m.sender === incoming.sender &&
-           m.timestamp === incoming.timestamp &&
-           m.message === incoming.message)
-        );
+
+      setMessages((prev) => {
+        const exists = prev.some((m) => m.id === incoming.id);
         if (exists) return prev;
 
-        // Play sound if message is from someone else
         if (incoming.sender !== currentUser) {
           playNotificationSound();
         }
@@ -50,41 +53,43 @@ export function useMessages(roomId, currentUser) {
       });
     });
 
-    // Delete message
-    channel.subscribe('delete-message', (ablyMsg) => {
+    // ✅ DELETE
+    channel.subscribe("delete-message", (ablyMsg) => {
       const { id } = ablyMsg.data;
-      setMessages(prev => prev.filter(m => m.id !== id));
+      setMessages((prev) => prev.filter((m) => m.id !== id));
     });
 
-    // Edit message
-    channel.subscribe('edit-message', (ablyMsg) => {
+    // ✅ EDIT
+    channel.subscribe("edit-message", (ablyMsg) => {
       const { oldId, ...updated } = ablyMsg.data;
-      setMessages(prev =>
-        prev.map(m => m.id === oldId ? updated : m)
+      setMessages((prev) =>
+        prev.map((m) => (m.id === oldId ? updated : m))
       );
     });
 
-    // Typing indicator
-    channel.subscribe('typing', (ablyMsg) => {
+    // ✅ TYPING
+    channel.subscribe("typing", (ablyMsg) => {
       const { username } = ablyMsg.data;
       if (username === currentUser) return;
 
-      // Add to typing list
-      setTypingUsers(prev =>
+      setTypingUsers((prev) =>
         prev.includes(username) ? prev : [...prev, username]
       );
 
-      // Clear after 3 seconds of no typing event
       if (typingTimeouts.current[username]) {
         clearTimeout(typingTimeouts.current[username]);
       }
+
       typingTimeouts.current[username] = setTimeout(() => {
-        setTypingUsers(prev => prev.filter(u => u !== username));
+        setTypingUsers((prev) =>
+          prev.filter((u) => u !== username)
+        );
         delete typingTimeouts.current[username];
       }, 3000);
     });
   };
 
+  // 🔹 CLEANUP
   const unsubscribeAbly = () => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
@@ -94,15 +99,22 @@ export function useMessages(roomId, currentUser) {
     typingTimeouts.current = {};
   };
 
+  // 🔹 EFFECT (FIXED)
   useEffect(() => {
+    if (!roomId || !currentUser) return;
+
     setLoading(true);
-    setMessages([]);
     setTypingUsers([]);
+
     loadHistory();
     subscribeAbly();
-    return () => unsubscribeAbly();
-  }, [roomId]);
 
+    return () => {
+      unsubscribeAbly();
+    };
+  }, [roomId, currentUser]);
+
+  // 🔥 SEND MESSAGE (CORRECT ORDER)
   const sendMessage = async (text, sender) => {
     const msg = {
       sender,
@@ -110,35 +122,43 @@ export function useMessages(roomId, currentUser) {
       timestamp: new Date().toISOString(),
       roomId,
     };
-    const temp = { ...msg, id: `temp-${Date.now()}` };
-    setMessages(prev => [...prev, temp]);
 
+    // optimistic UI
+    const temp = { ...msg, id: `temp-${Date.now()}` };
+    setMessages((prev) => [...prev, temp]);
+
+    // save to backend
     const saved = await ChatService.sendMessage(msg);
-    setMessages(prev =>
-      prev.map(m => m.id === temp.id ? saved : m)
+
+    // replace temp with real
+    setMessages((prev) =>
+      prev.map((m) => (m.id === temp.id ? saved : m))
     );
+
+    // 🔥 REALTIME BROADCAST
+    if (channelRef.current) {
+      channelRef.current.publish("new-message", saved);
+    }
   };
 
   const publishTyping = (username) => {
     if (channelRef.current) {
-      channelRef.current.publish('typing', { username });
+      channelRef.current.publish("typing", { username });
     }
   };
 
   const deleteMessage = (id) => {
-    setMessages(prev => prev.filter(m => m.id !== id));
+    setMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
   const editMessage = (oldId, newText, newId) => {
-    pauseRef.current = true;
-    setMessages(prev =>
-      prev.map(m =>
+    setMessages((prev) =>
+      prev.map((m) =>
         m.id === oldId
-          ? { ...m, id: newId, message: newText, edited: 'true' }
+          ? { ...m, id: newId, message: newText, edited: "true" }
           : m
       )
     );
-    setTimeout(() => { pauseRef.current = false; }, 3000);
   };
 
   return {
