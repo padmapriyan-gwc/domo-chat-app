@@ -26,6 +26,7 @@ export function useMessages(roomId, currentUser) {
 
   const subscribeAbly = () => {
     const channel = getChannel(roomId);
+    if (!channel) return; 
     channelRef.current = channel;
 
     // New message

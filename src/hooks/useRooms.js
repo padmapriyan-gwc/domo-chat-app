@@ -47,6 +47,7 @@ export function useRooms(username, activeRoomId) {
     if (roomChannels.current[roomId]) return;
 
     const channel = getChannel(roomId);
+    if (!channel) return;
     roomChannels.current[roomId] = channel;
 
     // ✅ NEW MESSAGE
@@ -72,7 +73,10 @@ export function useRooms(username, activeRoomId) {
   };
 
   const subscribeAbly = () => {
-    const channel = getAbly(username).channels.get(`user-${username}`);
+    if (!username) return; // ← add this guard
+    const ably = getAbly(username);
+    if (!ably) return; // ← add this guard
+    const channel = ably.channels.get(`user-${username}`);
     channelRef.current = channel;
 
     channel.subscribe("new-room", (ablyMsg) => {

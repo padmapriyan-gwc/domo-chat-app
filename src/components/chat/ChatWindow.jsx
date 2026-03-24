@@ -7,8 +7,7 @@ import { MessageInput } from "./MessageInput";
 import { DateSeparator } from "./DateSeparator";
 import { TypingIndicator } from "./TypingIndicator";
 import { LoadingSpinner } from "../common/LoadingSpinner";
-import { getUserColor } from "../../utils/helpers";
-import { formatDateSeparator } from "../../utils/helpers";
+import { getUserColor, formatDateSeparator } from "../../utils/helpers";
 
 export function ChatWindow({ room, onBack }) {
   const { user } = useAuth();
@@ -33,9 +32,18 @@ export function ChatWindow({ room, onBack }) {
 
   const onlineUsers = useOnlineUsers(user.username);
 
-  // CHECK ONLINE STATUS (ONLY FOR DM)
+  // ✅ FIXED ONLINE STATUS (same as RoomItem)
+  const dmUser =
+    room?.type === "dm"
+      ? room.members?.find((m) => m !== user.username)
+      : null;
+
   const isUserOnline =
-    room?.type === "dm" ? onlineUsers.includes(roomName) : false;
+    dmUser
+      ? onlineUsers.some(
+          (u) => u.toLowerCase() === dmUser.toLowerCase()
+        )
+      : false;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,7 +61,7 @@ export function ChatWindow({ room, onBack }) {
 
       if (msgDate !== lastDate) {
         items.push(
-          <DateSeparator key={`date-${msg.timestamp}`} label={msgDate} />,
+          <DateSeparator key={`date-${msg.timestamp}`} label={msgDate} />
         );
         lastDate = msgDate;
         lastSender = null;
@@ -70,7 +78,7 @@ export function ChatWindow({ room, onBack }) {
           isGrouped={isGrouped}
           onDelete={deleteMessage}
           onEdit={editMessage}
-        />,
+        />
       );
 
       lastSender = msg.sender;
@@ -86,7 +94,7 @@ export function ChatWindow({ room, onBack }) {
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3
-                      border-b border-gray-100 shrink-0 bg-violet-50"
+                   border-b border-gray-100 shrink-0 bg-violet-50"
       >
         <div className="flex items-center gap-3">
           {/* Mobile back */}
@@ -103,17 +111,17 @@ export function ChatWindow({ room, onBack }) {
           <div className="relative">
             <div
               className={`w-9 h-9 rounded-full flex items-center
-                            justify-center text-sm font-semibold
-                            text-white ${bg}`}
+                          justify-center text-sm font-semibold
+                          text-white ${bg}`}
             >
               {roomName[0]?.toUpperCase()}
             </div>
 
-            {/* ✅ SHOW ONLY IF ONLINE */}
-            {isUserOnline && (
+            {/* ✅ Online indicator */}
+            {room?.type === "dm" && isUserOnline && (
               <span
                 className="absolute bottom-0 right-0 w-2.5 h-2.5
-                               bg-green-400 rounded-full border-2 border-white"
+                           bg-green-400 rounded-full border-2 border-white"
               />
             )}
           </div>
@@ -123,16 +131,20 @@ export function ChatWindow({ room, onBack }) {
               {roomName}
             </p>
 
-            {/* ✅ FIXED STATUS TEXT */}
-            <p className="text-xs font-medium text-gray-500">
+            {/* ✅ Status text */}
+            <p className="text-xs font-medium">
               {room?.type === "dm" ? (
                 isUserOnline ? (
                   <span className="text-green-500">Online</span>
                 ) : (
                   <span className="text-gray-400">Offline</span>
                 )
+              ) : room?.type === "group" ? (
+                <span className="text-gray-400">
+                  {room.members?.length || 0} members
+                </span>
               ) : (
-                `Group chat`
+                <span className="text-gray-400">Public channel</span>
               )}
             </p>
           </div>
@@ -142,23 +154,18 @@ export function ChatWindow({ room, onBack }) {
       {/* Messages */}
       <div
         className="flex-1 overflow-y-auto px-5 py-5 space-y-1
-                  bg-gradient-to-b from-transparent to-purple-50/40"
+                   bg-gradient-to-b from-transparent to-purple-50/40"
       >
         {loading ? (
           <LoadingSpinner text="Loading messages..." />
         ) : messages.length === 0 ? (
-          <div
-            className="flex flex-col justify-center items-center
-                      h-full gap-4"
-          >
-            <div
-              className="w-16 h-16 rounded-2xl bg-purple-100 flex
-                        items-center justify-center text-3xl shadow-sm"
-            >
+          <div className="flex flex-col justify-center items-center h-full gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center text-3xl shadow-sm">
               💬
             </div>
-
-            <p className="text-gray-400 text-sm">Start the conversation ✨</p>
+            <p className="text-gray-400 text-sm">
+              Start the conversation ✨
+            </p>
           </div>
         ) : (
           renderMessages()
