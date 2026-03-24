@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export default function LoginPage() {
   const [form, setForm]         = useState({ username: '', password: '' });
   const [showPass, setShowPass] = useState(false);
-  const [remember, setRemember] = useState(false);
+  // const [remember, setRemember] = useState(false);
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const { login }               = useAuth();
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await AuthService.login(form.username, form.password);
-      if (remember) localStorage.setItem('chat_user', JSON.stringify(user));
+      // if (remember) localStorage.setItem('chat_user', JSON.stringify(user));
       login(user);
       navigate('/home');
     } catch (e) {
@@ -177,6 +177,18 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+          {/* Remember me
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+                className="w-4 h-4 rounded cursor-pointer accent-purple-600"
+              />
+              <span className="text-sm text-gray-500">Remember me</span>
+            </label>
+          </div> */}
 
           {/* Error */}
           {error && (

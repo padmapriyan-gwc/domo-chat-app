@@ -3,19 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthService } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
-const getPasswordStrength = (password) => {
-  if (!password) return null;
-  let score = 0;
-  if (password.length >= 8)           score++;
-  if (/[A-Z]/.test(password))         score++;
-  if (/[0-9]/.test(password))         score++;
-  if (/[^A-Za-z0-9]/.test(password))  score++;
-  if (score <= 1) return { label: 'Weak',   color: '#f87171', width: '25%'  };
-  if (score === 2) return { label: 'Fair',   color: '#fbbf24', width: '50%'  };
-  if (score === 3) return { label: 'Good',   color: '#60a5fa', width: '75%'  };
-  return             { label: 'Strong', color: '#34d399', width: '100%' };
-};
-
 export default function SignupPage() {
   const [form, setForm]         = useState({ username: '', password: '', confirm: '' });
   const [showPass, setShowPass] = useState(false);
@@ -23,7 +10,6 @@ export default function SignupPage() {
   const [loading, setLoading]   = useState(false);
   const { login }               = useAuth();
   const navigate                = useNavigate();
-  const strength                = getPasswordStrength(form.password);
 
   const handleSubmit = async () => {
     setError('');
@@ -155,10 +141,10 @@ export default function SignupPage() {
             </label>
             <input
               className="w-full px-4 py-3 rounded-xl border border-gray-200
-                         text-sm text-gray-800 placeholder-gray-300
-                         focus:outline-none focus:ring-2 focus:ring-purple-500/30
-                         focus:border-purple-400 transition-all bg-gray-50
-                         hover:bg-white"
+                        text-sm text-gray-800 placeholder-gray-300
+                        focus:outline-none focus:ring-2 focus:ring-purple-500/30
+                        focus:border-purple-400 transition-all bg-gray-50
+                        hover:bg-white"
               placeholder="Choose a username"
               value={form.username}
               onChange={e => setForm({ ...form, username: e.target.value })}

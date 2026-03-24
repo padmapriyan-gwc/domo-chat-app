@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChatService } from '../../services/chatService';
-import { Avatar } from '../common/Avatar';
+import { getUserColor } from '../../utils/helpers';
 
 export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
   const [isEditing, setIsEditing]     = useState(false);
@@ -24,77 +24,71 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
       onEdit(msg.id, editText.trim(), updated.id);
     } catch {
       setIsEditing(true);
-      alert('Edit failed — please try again');
     }
   };
 
+  const { bg } = getUserColor(msg.sender);
+
   return (
     <div
-      className={`
-        flex flex-col mb-1
-        ${isOwn ? 'items-end' : 'items-start'}
-        ${!isGrouped ? 'mt-3' : ''}
-        animate-in fade-in slide-in-from-bottom-2 duration-200
-      `}
-      onMouseEnter={() => isOwn && setShowActions(true)}
+      className={`flex flex-col mb-0.5
+                  ${isOwn ? 'items-end' : 'items-start'}
+                  ${!isGrouped ? 'mt-4' : 'mt-0.5'}`}
+      onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Sender name + avatar — hidden when grouped */}
+      {/* Sender name + avatar */}
       {!isOwn && !isGrouped && (
-        <div className="flex items-center gap-2 mb-1 ml-1">
-          <Avatar name={msg.sender} size="sm" />
-          <span className="text-xs text-gray-400 font-medium">
+        <div className="flex items-center gap-2 mb-1.5 ml-1">
+          <div className={`w-7 h-7 rounded-full flex items-center
+                          justify-center text-xs font-bold
+                          text-white flex-shrink-0 ${bg}`}>
+            {msg.sender?.[0]?.toUpperCase()}
+          </div>
+          <span className="text-gray-500 text-xs font-semibold">
             {msg.sender}
           </span>
         </div>
       )}
 
-      {/* Spacer to align grouped messages with avatar */}
-      {!isOwn && isGrouped && (
-        <div className="ml-9" />
-      )}
+      <div className={`flex items-end gap-2 max-w-xs lg:max-w-md
+                      ${!isOwn ? 'ml-9' : ''}`}>
 
-      <div className={`flex items-end gap-2 ${isOwn ? '' : 'ml-9'}`}>
-
-        {/* Edit / Delete buttons */}
+        {/* Action buttons */}
         {isOwn && showActions && !isEditing && !showConfirm && (
           <div className="flex gap-1 mb-1">
             <button
               onClick={() => setIsEditing(true)}
-              className="text-xs bg-gray-100 hover:bg-gray-200
-                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
+              className="text-xs text-gray-400 hover:text-gray-600
+                        px-2 py-1 rounded-lg hover:bg-gray-100
+                        transition-all"
             >
               Edit
             </button>
             <button
               onClick={() => setShowConfirm(true)}
-              className="text-xs bg-red-50 hover:bg-red-100
-                        text-red-400 px-2 py-1 rounded-lg transition-colors"
+              className="text-xs text-red-400 hover:text-red-500
+                        px-2 py-1 rounded-lg hover:bg-red-50
+                        transition-all"
             >
               Delete
             </button>
           </div>
         )}
 
-        {/* Inline delete confirm */}
+        {/* Delete confirm */}
         {showConfirm && (
-          <div className="flex items-center gap-2 mb-1 bg-red-50
-                          border border-red-100 rounded-xl px-3 py-2">
-            <span className="text-xs text-red-500 font-medium">
-              Delete this message?
-            </span>
-            <button
-              onClick={handleDelete}
-              className="text-xs bg-red-500 hover:bg-red-600
-                        text-white px-2 py-1 rounded-lg transition-colors"
-            >
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl
+                          bg-red-50 border border-red-100">
+            <span className="text-xs text-red-500">Are you sure you want to Delete?</span>
+            <button onClick={handleDelete}
+              className="text-xs text-red-500 font-bold
+                         hover:text-red-600 transition-colors">
               Yes
             </button>
-            <button
-              onClick={() => setShowConfirm(false)}
-              className="text-xs bg-gray-100 hover:bg-gray-200
-                        text-gray-500 px-2 py-1 rounded-lg transition-colors"
-            >
+            <button onClick={() => setShowConfirm(false)}
+              className="text-xs text-gray-400 hover:text-gray-600
+                         transition-colors">
               No
             </button>
           </div>
@@ -102,11 +96,11 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
 
         {/* Edit mode */}
         {isEditing ? (
-          <div className="flex flex-col gap-2 max-w-xs w-full">
+          <div className="flex flex-col gap-2 w-64">
             <input
-              className="px-3 py-2 rounded-xl border border-blue-300
-                        text-sm focus:outline-none focus:ring-2
-                        focus:ring-blue-400 w-full"
+              className="px-3 py-2 rounded-xl border border-purple-200
+                         text-sm text-gray-800 focus:outline-none
+                         focus:ring-2 focus:ring-purple-300/50 bg-white"
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => {
@@ -124,8 +118,9 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
               </button>
               <button
                 onClick={handleEdit}
-                className="text-xs bg-blue-500 hover:bg-blue-600
-                          text-white px-3 py-1 rounded-lg transition-colors"
+                className="text-xs text-white font-semibold px-3 py-1
+                           rounded-lg"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}
               >
                 Save
               </button>
@@ -133,31 +128,37 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
           </div>
         ) : (
           !showConfirm && (
-            <div className={`
-              max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm shadow-sm
-              ${isOwn
-                ? 'bg-blue-500 text-white rounded-br-none'
-                : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
-              }
-            `}>
-              {msg.message}
-              {msg.edited === 'true' && (
-                <span className="text-xs opacity-60 ml-2">(edited)</span>
-              )}
+            <div>
+              {/* Bubble */}
+              <div
+                className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
+                style={isOwn ? {
+                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                  color: '#fff',
+                  borderBottomRightRadius: '6px',
+                } : {
+                  background: '#f3f4f6',
+                  color: '#1f2937',
+                  borderBottomLeftRadius: '6px',
+                }}
+              >
+                {msg.message}
+                {msg.edited === 'true' && (
+                  <span className="text-xs opacity-50 ml-2">(edited)</span>
+                )}
+              </div>
+
+              {/* Timestamp */}
+              <p className={`text-xs mt-1 text-gray-400
+                             ${isOwn ? 'text-right' : 'text-left'}`}>
+                {new Date(msg.timestamp).toLocaleTimeString([], {
+                  hour: '2-digit', minute: '2-digit',
+                })}
+              </p>
             </div>
           )
         )}
       </div>
-
-      {/* Timestamp — only show on last message in group */}
-      {!showConfirm && (
-        <span className={`text-xs text-gray-400 mt-1
-                          ${isOwn ? 'mr-1' : 'ml-10'}`}>
-          {new Date(msg.timestamp).toLocaleTimeString([], {
-            hour: '2-digit', minute: '2-digit',
-          })}
-        </span>
-      )}
     </div>
   );
 }

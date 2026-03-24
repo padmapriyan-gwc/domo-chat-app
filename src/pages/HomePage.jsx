@@ -16,26 +16,21 @@ export default function HomePage() {
   const [showNewChat, setShowNewChat]   = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Escape — close any open modal
       if (e.key === 'Escape') {
         setShowNewChat(false);
         setShowNewGroup(false);
       }
-      // Ctrl+K — open new chat
       if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setShowNewChat(true);
       }
-      // Ctrl+G — open new group
       if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setShowNewGroup(true);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -56,14 +51,14 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen w-screen overflow-hidden bg-white">
 
       {/* Sidebar */}
       <div className={`
-        flex flex-col h-full border-r border-gray-100 bg-white
-        transition-all duration-200
+        flex flex-col h-full border-r border-gray-100
         ${showSidebar ? 'flex' : 'hidden'}
         w-full md:flex md:w-72 md:min-w-[280px]
+        bg-white
       `}>
         <Sidebar
           activeRoomId={activeRoom?.id}
@@ -76,7 +71,7 @@ export default function HomePage() {
 
       {/* Chat window */}
       <div className={`
-        flex-1 flex flex-col h-full overflow-hidden
+        flex-1 flex flex-col h-full overflow-hidden bg-white
         ${showSidebar ? 'hidden md:flex' : 'flex'}
       `}>
         {activeRoom ? (
@@ -86,17 +81,17 @@ export default function HomePage() {
           />
         ) : (
           <div className="flex flex-col items-center justify-center
-                          h-full text-gray-400">
-            <span className="text-4xl mb-3">💬</span>
-            <p className="text-sm">Select a chat to start messaging</p>
-            <p className="text-xs text-gray-300 mt-1">
-              Press Ctrl+K to start a new chat
-            </p>
+                          h-full gap-3 bg-gray-50">
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 flex
+                            items-center justify-center text-2xl">
+              💬
+            </div>
+            <p className="text-gray-400 text-sm">Select a chat to start messaging</p>
+            <p className="text-gray-300 text-xs">Press Ctrl+K to start a new chat</p>
           </div>
         )}
       </div>
 
-      {/* Modals */}
       {showNewChat && (
         <NewChatModal
           onClose={() => setShowNewChat(false)}

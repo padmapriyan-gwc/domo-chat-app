@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RoomItem } from './RoomItem';
-import { LoadingSpinner } from '../common/LoadingSpinner';
 
 export function RoomList({
   rooms,
@@ -9,9 +8,9 @@ export function RoomList({
   onSelectRoom,
   currentUser,
   unreadCounts = {},
+  activeTab = 'all',
+  search = '',
 }) {
-  const [search, setSearch] = useState('');
-
   const publicRoom = { id: 'general', name: 'general', type: 'public' };
 
   const getRoomLabel = (room) =>
@@ -19,93 +18,106 @@ export function RoomList({
       ? room.members?.find(m => m !== currentUser) || room.name
       : room.name;
 
-  const filtered = rooms.filter(room =>
-    getRoomLabel(room).toLowerCase().includes(search.toLowerCase())
+  const matchesSearch = (room) =>
+    getRoomLabel(room).toLowerCase().includes(search.toLowerCase());
+
+  const showPublic = activeTab === 'all' && matchesSearch(publicRoom);
+
+  const dms = rooms.filter(r =>
+    r.type === 'dm' &&
+    (activeTab === 'all' || activeTab === 'dm') &&
+    matchesSearch(r)
   );
 
-  const dms    = filtered.filter(r => r.type === 'dm');
-  const groups = filtered.filter(r => r.type === 'group');
+  const groups = rooms.filter(r =>
+    r.type === 'group' &&
+    (activeTab === 'all' || activeTab === 'group') &&
+    matchesSearch(r)
+  );
 
-  if (loading) return <LoadingSpinner text="Loading rooms..." />;
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-300 text-xs">Loading...</p>
+      </div>
+    );
+  }
+
+  const isEmpty = !showPublic && dms.length === 0 && groups.length === 0;
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex-1 overflow-y-auto px-2 pb-2">
 
-      {/* Search input */}
-      <div className="px-3 pt-3 pb-1">
-        <input
-          className="w-full px-3 py-2 rounded-xl bg-gray-100 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-400
-                     placeholder-gray-400"
-          placeholder="Search chats..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+      {/* Empty search state */}
+      {isEmpty && search && (
+        <div className="flex flex-col items-center justify-center h-24 gap-1">
+          <p className="text-gray-400 text-sm">No results for "{search}"</p>
+          <p className="text-gray-300 text-xs">Try a different name</p>
+        </div>
+      )}
+
+      {/* General / Public */}
+      {showPublic && (
+        <RoomItem
+          room={publicRoom}
+          isActive={activeRoomId === 'general'}
+          onClick={onSelectRoom}
+          currentUser={currentUser}
+          unreadCount={unreadCounts['general'] || 0}
         />
-      </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto">
-
-        {/* Public */}
-        <div className="px-3 pt-2">
-          <p className="text-xs text-gray-400 font-medium px-2 mb-1">
-            Public
-          </p>
-          <RoomItem
-            room={publicRoom}
-            isActive={activeRoomId === 'general'}
-            onClick={onSelectRoom}
-            currentUser={currentUser}
-            unreadCount={unreadCounts['general'] || 0}
-          />
-        </div>
-
-        {/* DMs */}
-        <div className="px-3 pt-3">
-          <p className="text-xs text-gray-400 font-medium px-2 mb-1">
-            Direct messages
-          </p>
-          {dms.length === 0 ? (
-            <p className="text-xs text-gray-300 px-2 py-2">
-              {search ? 'No results' : 'No DMs yet — click + to start one'}
+      {/* DM section */}
+      {dms.length > 0 && (
+        <div className="mt-1">
+          {activeTab === 'all' && (
+            <p className="text-xs text-gray-600 font-semibold
+                          px-3 pt-3 pb-1 tracking-wide uppercase">
+              Direct Messages
             </p>
-          ) : (
-            dms.map(room => (
-              <RoomItem
-                key={room.id}
-                room={room}
-                isActive={activeRoomId === room.id}
-                onClick={onSelectRoom}
-                currentUser={currentUser}
-                unreadCount={unreadCounts[room.id] || 0}
-              />
-            ))
           )}
+          {dms.map(room => (
+            <RoomItem
+              key={room.id}
+              room={room}
+              isActive={activeRoomId === room.id}
+              onClick={onSelectRoom}
+              currentUser={currentUser}
+              unreadCount={unreadCounts[room.id] || 0}
+            />
+          ))}
         </div>
+      )}
 
-        {/* Groups */}
-        <div className="px-3 pt-3">
-          <p className="text-xs text-gray-400 font-medium px-2 mb-1">
-            Groups
-          </p>
-          {groups.length === 0 ? (
-            <p className="text-xs text-gray-300 px-2 py-2">
-              {search ? 'No results' : 'No groups yet — click ⊞ to create one'}
+      {/* Groups section */}
+      {groups.length > 0 && (
+        <div className="mt-1">
+          {activeTab === 'all' && (
+            <p className="text-xs text-gray-600 font-semibold
+                          px-3 pt-3 pb-1 tracking-wide uppercase">
+              Groups
             </p>
-          ) : (
-            groups.map(room => (
-              <RoomItem
-                key={room.id}
-                room={room}
-                isActive={activeRoomId === room.id}
-                onClick={onSelectRoom}
-                currentUser={currentUser}
-                unreadCount={unreadCounts[room.id] || 0}
-              />
-            ))
           )}
+          {groups.map(room => (
+            <RoomItem
+              key={room.id}
+              room={room}
+              isActive={activeRoomId === room.id}
+              onClick={onSelectRoom}
+              currentUser={currentUser}
+              unreadCount={unreadCounts[room.id] || 0}
+            />
+          ))}
         </div>
+      )}
 
-      </div>
+      {/* No rooms yet */}
+      {isEmpty && !search && (
+        <div className="flex flex-col items-center justify-center h-24 gap-1">
+          <p className="text-gray-300 text-xs">No chats yet</p>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -8,16 +8,20 @@ export function TypingIndicator({ typingUsers }) {
     : `${typingUsers.join(', ')} are typing`;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-1">
+    <div className="flex items-center gap-2 px-6 py-1.5 flex-shrink-0"
+      style={{ background: '#16213e' }}>
       <div className="flex gap-1 items-center">
-        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full
-                         animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full
-                         animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full
-                         animate-bounce" style={{ animationDelay: '300ms' }} />
+        {[0, 150, 300].map(delay => (
+          <span key={delay}
+            className="w-1.5 h-1.5 rounded-full animate-bounce"
+            style={{ background: '#a855f7', animationDelay: `${delay}ms` }}
+          />
+        ))}
       </div>
-      <span className="text-xs text-gray-400 italic">{label}</span>
+      <span className="text-xs italic"
+        style={{ color: 'rgba(255,255,255,0.3)' }}>
+        {label}
+      </span>
     </div>
   );
 }

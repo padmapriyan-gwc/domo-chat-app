@@ -1,13 +1,11 @@
 import React, { useState, useRef } from 'react';
 
 export function MessageInput({ onSend, onTyping }) {
-  const [text, setText]         = useState('');
-  const typingThrottle          = useRef(null);
+  const [text, setText]   = useState('');
+  const typingThrottle    = useRef(null);
 
   const handleChange = (e) => {
     setText(e.target.value);
-
-    // Throttle typing events — publish at most once every 2s
     if (!typingThrottle.current) {
       onTyping?.();
       typingThrottle.current = setTimeout(() => {
@@ -23,25 +21,41 @@ export function MessageInput({ onSend, onTyping }) {
   };
 
   return (
-    <div className="flex items-center gap-2 p-3 bg-white
-                    border-t border-gray-100 flex-shrink-0">
-      <input
-        className="flex-1 px-4 py-2.5 rounded-full bg-gray-100
-                   text-sm focus:outline-none focus:ring-2
-                   focus:ring-blue-400 min-w-0"
-        value={text}
-        onChange={handleChange}
-        onKeyDown={e => e.key === 'Enter' && handleSend()}
-        placeholder="Type a message..."
-      />
+    <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0
+                    bg-white border-t border-gray-100">
+
+      {/* Input area */}
+      <div className="flex-1 flex items-center gap-2 px-4 py-2.5
+                      rounded-2xl border border-gray-200 bg-gray-50
+                      focus-within:bg-white focus-within:border-purple-200
+                      focus-within:ring-2 focus-within:ring-purple-100
+                      transition-all">
+        <input
+          className="flex-1 text-sm text-gray-800 bg-transparent
+                     focus:outline-none placeholder-gray-400 min-w-0"
+          value={text}
+          onChange={handleChange}
+          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          placeholder="Send a Message"
+        />
+      </div>
+
+      {/* Send */}
       <button
         onClick={handleSend}
         disabled={!text.trim()}
-        className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200
-                   text-white text-sm font-semibold px-4 py-2.5
-                   rounded-full transition-colors flex-shrink-0"
+        className="px-4 py-2.5 rounded-xl text-sm font-bold
+                   transition-all duration-150 flex-shrink-0
+                   disabled:opacity-40 disabled:cursor-not-allowed
+                   hover:opacity-90 active:scale-95"
+        style={{
+          background: text.trim()
+            ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+            : '#e5e7eb',
+          color: text.trim() ? '#fff' : '#9ca3af',
+        }}
       >
-        ➤
+        Send
       </button>
     </div>
   );
