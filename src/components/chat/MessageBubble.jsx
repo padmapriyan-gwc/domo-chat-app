@@ -11,7 +11,10 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
   // ✅ Dismiss action menu when tapping outside on mobile
   useEffect(() => {
     if (!showActions) return;
-    const dismiss = () => setShowActions(false);
+    const dismiss = (e) => {
+      if (e.target.closest(".action-menu")) return;
+      setShowActions(false);
+    };
     document.addEventListener("touchstart", dismiss);
     return () => document.removeEventListener("touchstart", dismiss);
   }, [showActions]);
@@ -155,19 +158,27 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
                 {/* ✅ MOBILE: tap bubble to toggle, appears above */}
                 {showActions && (
                   <div
-                    className="absolute -top-10 right-0
-                               flex sm:hidden gap-1 bg-white shadow-lg
-                               rounded-lg px-2 py-1.5 text-xs z-20
-                               border border-gray-100 whitespace-nowrap"
+                    className="action-menu absolute -top-10 right-0
+                              flex sm:hidden gap-1 bg-white shadow-lg
+                              rounded-lg px-2 py-1.5 text-xs z-20
+                              border border-gray-100 whitespace-nowrap"
                   >
                     <button
-                      onClick={() => setIsEditing(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditing(true);
+                        setShowActions(false); 
+                      }}
                       className="text-gray-500 hover:text-blue-500 px-1"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => setShowConfirm(true)}
+                      onClick={(e) => {
+                        e.stopPropagation(); 
+                        setShowConfirm(true); 
+                        setShowActions(false); 
+                      }}
                       className="text-red-400 hover:text-red-500 px-1"
                     >
                       Delete
