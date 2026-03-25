@@ -8,7 +8,7 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
-  // ✅ Dismiss action menu when tapping outside on mobile
+  // Dismiss action menu when tapping outside on mobile
   useEffect(() => {
     if (!showActions) return;
     const dismiss = (e) => {

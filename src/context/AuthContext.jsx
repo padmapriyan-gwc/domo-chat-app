@@ -6,9 +6,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     // Check both localStorage (remember me) and sessionStorage
     try {
-      const local   = localStorage.getItem('chat_user');
-      const session = sessionStorage.getItem('chat_user');
-      const stored  = local || session;
+      // const local   = localStorage.getItem('chat_user');
+      // const session = sessionStorage.getItem('chat_user');
+      const stored = sessionStorage.getItem('chat_user');
       if (stored) {
         const parsed = JSON.parse(stored);
         // Validate — must have username string
