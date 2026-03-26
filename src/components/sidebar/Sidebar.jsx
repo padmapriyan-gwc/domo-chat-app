@@ -40,9 +40,9 @@ export function Sidebar({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-linear-to-b from-violet-50 to-pink-50 border-r border-gray-200">
+    <div className="flex flex-col h-full bg-gradient-to-b from-violet-100/65 via-violet-50/45 to-pink-100/45 border-r border-violet-200/70">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 shrink-0">
+      <div className="px-4 pt-4 pb-3 shrink-0 bg-gradient-to-b from-violet-100/65 to-violet-50/40">
         {/* Top row */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -93,9 +93,9 @@ export function Sidebar({
           </svg>
 
           <input
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-gray-200
-                      text-gray-700 placeholder-gray-400
-                      focus:outline-none focus:ring-2 focus:ring-violet-400 transition-all"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-violet-100
+                      text-gray-700 placeholder-gray-400 shadow-[inset_0_1px_1px_rgba(124,58,237,0.04)]
+                      focus:outline-none focus:ring-2 focus:ring-violet-300/60 transition-all"
             placeholder="Search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -103,7 +103,7 @@ export function Sidebar({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-xl bg-gray-100 border border-gray-200">
+        <div className="flex gap-1 p-1 rounded-xl bg-violet-100/60 border border-violet-200/70">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -112,8 +112,8 @@ export function Sidebar({
                 transition-all duration-150
                 ${
                   activeTab === tab.id
-                    ? "bg-gradient-to-r from-violet-100 to-pink-100 text-gray-500 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-white"
+                    ? "bg-white text-violet-600 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/80"
                 }`}
             >
               {tab.label}
@@ -135,15 +135,16 @@ export function Sidebar({
       />
 
       {/* Footer */}
-      <div className="flex flex-row px-4 py-3 border-t border-pink-50 flex-shrink-0">
+      <div className="flex flex-row px-4 py-3 border-t border-violet-200/70 bg-gradient-to-r from-violet-100/55 to-pink-100/45 flex-shrink-0">
         <button
           onClick={onLogout}
           title="Logout"
-          className="btn-icon w-9 h-9 rounded-xl flex items-center justify-center
-                     text-red-400 hover:text-red-300
-                     hover:bg-black/10 active:scale-95 transition-all duration-200"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl
+                     text-gray-600 hover:text-violet-700
+                     hover:bg-white/80 active:scale-95 transition-all duration-200"
         >
-          <LogOut size={18} />
+          <LogOut size={16} />
+          <span className="text-sm font-semibold">Logout</span>
         </button>
       </div>
     </div>

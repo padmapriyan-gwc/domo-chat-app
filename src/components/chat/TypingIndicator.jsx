@@ -10,8 +10,8 @@ export function TypingIndicator({ typingUsers }) {
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 flex-shrink-0
-                    bg-white/80 backdrop-blur-sm
-                    border-t border-none">
+                    bg-gradient-to-r from-violet-50/90 to-pink-50/70
+                    border-t border-violet-200/60">
 
       {/* Animated dots */}
       <div className="flex gap-1 items-center">

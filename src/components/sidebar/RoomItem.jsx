@@ -31,10 +31,10 @@ export function RoomItem({
     <button
       onClick={() => onClick(room)}
       className={`w-full flex items-center gap-3 px-3 py-2.5
-                  rounded-xl transition-all duration-150 text-left
+                  rounded-xl transition-all duration-150 text-left border
                   ${isActive
-                    ? "bg-violet-100"
-                    : "hover:scale-[1.01] hover:bg-gray-50"}`}
+                    ? "bg-gradient-to-r from-violet-100/75 to-pink-100/55 border-violet-200"
+                    : "bg-white/35 border-transparent hover:bg-violet-50/70 hover:border-violet-200/60"}`}
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
@@ -62,7 +62,7 @@ export function RoomItem({
         <div className="flex items-center justify-between gap-1">
           <span
             className={`text-sm font-semibold truncate
-                          ${isActive ? "text-purple-600" : "text-gray-700"}`}
+                          ${isActive ? "text-violet-700" : "text-gray-700"}`}
           >
             {isGroup && <span className="text-gray-400 mr-1 text-xs">⊞</span>}
             {label}
@@ -87,8 +87,8 @@ export function RoomItem({
                 room.type === "dm"
                   ? isOnline
                     ? "#22c55e"
-                    : "#9ca3af"
-                  : "#9ca3af",
+                    : "#8b8ea3"
+                  : "#8b8ea3",
             }}
           >
             {room.type === "public"

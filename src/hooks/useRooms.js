@@ -106,8 +106,11 @@ export function useRooms(username, activeRoomId) {
     channel.subscribe("room-updated", (ablyMsg) => {
       const updatedRoom = ablyMsg.data;
       setRooms((prev) => {
+        const updatedMembers = Array.isArray(updatedRoom?.members)
+          ? updatedRoom.members
+          : [];
         // If user was removed — remove room from their list
-        if (!updatedRoom.members.includes(username)) {
+        if (!updatedMembers.includes(username)) {
           return prev.filter((r) => r.id !== updatedRoom.id);
         }
         // Update existing room

@@ -51,14 +51,14 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-gradient-to-br from-violet-100 via-fuchsia-100/55 to-pink-100">
 
       {/* Sidebar */}
       <div className={`
-        flex flex-col h-full border-r border-gray-100
+        flex flex-col h-full border-r border-violet-100
         ${showSidebar ? 'flex' : 'hidden'}
         w-full md:flex md:w-72 md:min-w-[280px]
-        bg-white
+        bg-gradient-to-b from-violet-50/90 to-pink-50/60
       `}>
         <Sidebar
           activeRoomId={activeRoom?.id}
@@ -71,7 +71,7 @@ export default function HomePage() {
 
       {/* Chat window */}
       <div className={`
-        flex-1 flex flex-col h-full overflow-hidden bg-white
+        flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-violet-50/60 via-white/90 to-pink-50/50
         ${showSidebar ? 'hidden md:flex' : 'flex'}
       `}>
         {activeRoom ? (
@@ -80,14 +80,14 @@ export default function HomePage() {
             onBack={() => setShowSidebar(true)}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center
-                          h-full gap-3 bg-gray-50">
-            <div className="w-16 h-16 rounded-2xl bg-purple-50 flex
+          <div className="flex flex-1 flex-col items-center justify-center
+                          gap-3 bg-gradient-to-b from-violet-100/60 via-violet-50/50 to-pink-100/45">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 flex
                             items-center justify-center text-2xl">
               💬
             </div>
-            <p className="text-gray-400 text-sm">Select a chat to start messaging</p>
-            <p className="text-gray-300 text-xs">Press Ctrl+K to start a new chat</p>
+            <p className="text-gray-500 text-sm font-medium">Select a chat to start messaging</p>
+            <p className="text-gray-400 text-xs">Press Ctrl+K to start a new chat</p>
           </div>
         )}
       </div>

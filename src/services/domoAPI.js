@@ -1,5 +1,5 @@
 import domo from "ryuu.js";
-import { getAbly } from "../lib/ably";
+import { getAblyPublisher } from "../lib/ably";
 
 const BASE_URL = "/domo/datastores/v1";
 
@@ -41,6 +41,14 @@ const deleteDoc = (collection, id) =>
     throw err;
   });
 
+const updateDoc = (collection, id, content) =>
+  domo
+    .put(`${collectionURL(collection)}/${id}`, { content })
+    .catch((err) => {
+      console.error(`[updateDoc:${collection}:${id}]`, err);
+      throw err;
+    });
+
 const toUser = (doc) => ({
   id: doc.id,
   username: doc.content.username,
@@ -61,7 +69,7 @@ const toMessage = (doc) => ({
 
 const publishToRoom = (roomId, event, data) => {
   try {
-    getAbly().channels.get(`room-${roomId}`).publish(event, data);
+    getAblyPublisher().channels.get(`room-${roomId}`).publish(event, data);
   } catch (err) {
     console.error(`[publishToRoom:${roomId}:${event}]`, err);
   }
@@ -69,7 +77,7 @@ const publishToRoom = (roomId, event, data) => {
 
 const publishToUsers = (usernames, event, data) => {
   try {
-    const ably = getAbly();
+    const ably = getAblyPublisher();
     usernames.forEach((username) => {
       ably.channels.get(`user-${username}`).publish(event, data);
     });
@@ -216,17 +224,18 @@ export const addGroupMemberAPI = async (roomId, newMember, currentMembers) => {
     throw new Error(`${newMember} is already in this group`);
 
   const updatedMembers = [...currentMembers, newMember];
+  const rooms = await listDocs(COLLECTIONS.ROOMS);
+  const roomDoc = (rooms || []).find((doc) => doc.id === roomId);
+  if (!roomDoc) throw new Error("Group not found");
 
-  await deleteDoc(COLLECTIONS.ROOMS, roomId);
-
-  const res = await createDoc(COLLECTIONS.ROOMS, {
-    name: (await queryDocs(COLLECTIONS.ROOMS, {}))?.name || "",
-    type: "group",
+  const nextContent = {
+    ...roomDoc.content,
     members: JSON.stringify(updatedMembers),
     updatedAt: new Date().toISOString(),
-  });
+  };
 
-  const room = { ...toRoom(res), members: updatedMembers };
+  await updateDoc(COLLECTIONS.ROOMS, roomId, nextContent);
+  const room = { ...toRoom({ id: roomId, content: nextContent }), members: updatedMembers };
   publishToUsers(updatedMembers, "room-updated", room);
   return room;
 };
@@ -237,18 +246,20 @@ export const updateGroupMembersAPI = async (
   members,
   updatedMembers,
 ) => {
-  // Delete old document
-  await deleteDoc(COLLECTIONS.ROOMS, roomId);
+  const rooms = await listDocs(COLLECTIONS.ROOMS);
+  const roomDoc = (rooms || []).find((doc) => doc.id === roomId);
+  if (!roomDoc) throw new Error("Group not found");
 
-  // Recreate with updated members
-  const res = await createDoc(COLLECTIONS.ROOMS, {
-    name: roomName,
+  const nextContent = {
+    ...roomDoc.content,
+    name: roomName || roomDoc.content.name,
     type: "group",
     members: JSON.stringify(updatedMembers),
     updatedAt: new Date().toISOString(),
-  });
+  };
 
-  const room = { ...toRoom(res), members: updatedMembers };
+  await updateDoc(COLLECTIONS.ROOMS, roomId, nextContent);
+  const room = { ...toRoom({ id: roomId, content: nextContent }), members: updatedMembers };
 
   // Notify all old + new members
   const allAffected = [...new Set([...members, ...updatedMembers])];

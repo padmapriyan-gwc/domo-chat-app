@@ -6,14 +6,16 @@ import { getUserColor } from "../../utils/helpers";
 export function GroupMembersModal({ room, onClose, onUpdated }) {
   const { user } = useAuth();
   const [allUsers, setAllUsers] = useState([]);
-  const [members, setMembers] = useState(room.members || []);
+  const originalMembers = room.members || [];
+  const [members, setMembers] = useState(originalMembers);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("members"); // members | add
 
-  const isCreator = room.createdBy === user.username;
+  const adminUsername = room.createdBy || originalMembers[0] || "";
+  const isCreator = adminUsername === user.username;
 
   useEffect(() => {
     ChatService.fetchUsers().then((users) => {
@@ -23,7 +25,7 @@ export function GroupMembersModal({ room, onClose, onUpdated }) {
   }, []);
 
   const handleRemove = (username) => {
-    if (username === room.createdBy) return; // can't remove creator
+    if (username === adminUsername) return; // can't remove admin
     setMembers((prev) => prev.filter((m) => m !== username));
   };
 
@@ -46,9 +48,8 @@ const handleSave = async () => {
       members,
     );
 
-    // ✅ Make sure updated room keeps the same id
-    // Merge to be safe — don't replace the whole room object
-    onUpdated({ ...room, ...updated, id: room.id });
+    // Merge server data while preserving existing fields for UI state.
+    onUpdated({ ...room, ...updated });
     onClose();
   } catch (e) {
     setError(e.message || "Failed to update group");
@@ -69,7 +70,7 @@ const handleSave = async () => {
 
   const hasChanges =
     JSON.stringify([...members].sort()) !==
-    JSON.stringify([...room.members].sort());
+    JSON.stringify([...originalMembers].sort());
 
   return (
     <div
@@ -163,7 +164,7 @@ const handleSave = async () => {
                 filteredMembers.map((memberName) => {
                   const { bg } = getUserColor(memberName);
                   const isCurrentUser = memberName === user.username;
-                  const isCreatorMember = memberName === room.createdBy;
+                  const isCreatorMember = memberName === adminUsername;
 
                   return (
                     <div

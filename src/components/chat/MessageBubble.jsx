@@ -196,13 +196,15 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
               style={
                 isOwn
                   ? {
-                      background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                      color: "#fff",
+                      background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
+                      color: "#ffffff",
                       borderBottomRightRadius: "6px",
                     }
                   : {
-                      background: "#f3f4f6",
+                      background: "#ffffff",
                       color: "#1f2937",
+                      border: "1px solid #ede9fe",
+                      boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
                       borderBottomLeftRadius: "6px",
                     }
               }

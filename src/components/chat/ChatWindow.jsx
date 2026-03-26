@@ -113,7 +113,7 @@ export function ChatWindow({ room, onBack }) {
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3
-                   border-b border-gray-100 shrink-0 bg-violet-50"
+                   border-b border-violet-200/70 shrink-0 bg-gradient-to-r from-violet-100/70 via-violet-50/70 to-pink-100/55"
       >
         <div className="flex items-center gap-3">
           {/* Mobile back */}
@@ -174,8 +174,8 @@ export function ChatWindow({ room, onBack }) {
           <button
             onClick={() => setShowMembers(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl
-               text-xs font-semibold text-purple-600 bg-purple-50
-               hover:bg-purple-100 transition-all"
+               text-xs font-semibold text-violet-600 bg-violet-50
+               hover:bg-violet-100 transition-all"
           >
             <svg
               className="w-3.5 h-3.5"
@@ -198,7 +198,7 @@ export function ChatWindow({ room, onBack }) {
       {/* Messages */}
       <div
         className="flex-1 overflow-y-auto px-5 py-5 space-y-1
-                   bg-gradient-to-b from-transparent to-purple-50/40"
+                   bg-gradient-to-b from-violet-100/65 via-violet-50/35 to-pink-100/45"
       >
         {loading ? (
           <LoadingSpinner text="Loading messages..." />

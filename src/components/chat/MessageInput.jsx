@@ -23,14 +23,14 @@ export function MessageInput({ onSend, onTyping }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 flex-shrink-0
-                    bg-zinc-100 border-t border-gray-100"
+                    bg-gradient-to-r from-violet-100/65 to-pink-100/50 border-t border-violet-200/70"
     >
       {/* Input area */}
       <div
         className="flex-1 flex items-center gap-2 px-4 py-2.5
-                      rounded-2xl border border-gray-200 bg-gray-50
-                      focus-within:bg-white focus-within:border-purple-200
-                      focus-within:ring-2 focus-within:ring-purple-100
+                      rounded-2xl border border-violet-200 bg-white/95
+                      focus-within:bg-white focus-within:border-violet-300
+                      focus-within:ring-2 focus-within:ring-violet-200/70
                       transition-all"
       >
         <input
@@ -47,8 +47,8 @@ export function MessageInput({ onSend, onTyping }) {
       <button
         onClick={handleSend}
         className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 
-                    shrink-0 active:scale-95 bg-violet-400
-                    hover:bg-pink-500 text-white"
+                    shrink-0 active:scale-95 text-white
+                    bg-violet-500 hover:bg-violet-600"
       >
         Send
       </button>

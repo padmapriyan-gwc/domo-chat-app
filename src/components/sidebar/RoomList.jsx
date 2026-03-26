@@ -77,7 +77,7 @@ export function RoomList({
       {dms.length > 0 && (
         <div className="mt-1">
           {activeTab === "all" && (
-            <p className="text-xs text-gray-600 font-semibold px-3 pt-3 pb-1 tracking-wide uppercase">
+            <p className="text-xs text-violet-500/90 font-semibold px-3 pt-3 pb-1 tracking-wide uppercase">
               Direct Messages
             </p>
           )}
@@ -99,7 +99,7 @@ export function RoomList({
       {groups.length > 0 && (
         <div className="mt-1">
           {activeTab === "all" && (
-            <p className="text-xs text-gray-600 font-semibold px-3 pt-3 pb-1 tracking-wide uppercase">
+            <p className="text-xs text-violet-500/90 font-semibold px-3 pt-3 pb-1 tracking-wide uppercase">
               Groups
             </p>
           )}

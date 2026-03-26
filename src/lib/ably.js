@@ -3,11 +3,12 @@ import { ABLY_API_KEY } from '../constants';
 
 let ablyInstance = null;
 let currentClientId = null;
+let publisherAblyInstance = null;
 
 export const getAbly = (username) => {
-  // Guard — never create Ably with undefined/null clientId
-  if (!username || typeof username !== 'string') {
-    console.warn('[Ably] getAbly called without valid username:', username);
+  // Guard — never create a user-scoped client without a valid username.
+  if (!username || typeof username !== "string") {
+    console.warn("[Ably] getAbly called without valid username:", username);
     return null;
   }
 
@@ -37,6 +38,18 @@ export const getAbly = (username) => {
 
   currentClientId = username;
   return ablyInstance;
+};
+
+export const getAblyPublisher = () => {
+  if (publisherAblyInstance) return publisherAblyInstance;
+
+  // Dedicated publish-only client without user identity.
+  publisherAblyInstance = new Ably.Realtime({
+    key: ABLY_API_KEY,
+    autoConnect: true,
+  });
+
+  return publisherAblyInstance;
 };
 
 export const getChannel = (roomId, username) => {
