@@ -55,7 +55,7 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
           <div
             className={`w-7 h-7 rounded-full flex items-center
                         justify-center text-xs font-bold
-                        text-white flex-shrink-0 ${bg}`}
+                        text-white shrink-0 ${bg}`}
           >
             {msg.sender?.[0]?.toUpperCase()}
           </div>
@@ -93,8 +93,8 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
           <div className="flex flex-col gap-2 w-64">
             <input
               className="px-3 py-2 rounded-xl border border-purple-200
-                         text-sm text-gray-800 focus:outline-none
-                         focus:ring-2 focus:ring-purple-300/50 bg-white"
+                        text-sm text-gray-800 focus:outline-none
+                        focus:ring-2 focus:ring-purple-300/50 bg-white"
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
               onKeyDown={(e) => {
@@ -129,7 +129,7 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
           </div>
         ) : (
           /* MESSAGE + ACTIONS */
-          // ✅ overflow-visible prevents menu clipping
+          // overflow-visible prevents menu clipping
           <div className="relative group overflow-visible">
             {isOwn && (
               <>
@@ -155,7 +155,7 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
                   </button>
                 </div>
 
-                {/* ✅ MOBILE: tap bubble to toggle, appears above */}
+                {/* MOBILE: tap bubble to toggle, appears above */}
                 {showActions && (
                   <div
                     className="action-menu absolute -top-10 right-0
@@ -188,11 +188,11 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
               </>
             )}
 
-            {/* 💬 MESSAGE BUBBLE */}
+            {/* MESSAGE BUBBLE */}
             <div
               onClick={() => isOwn && setShowActions((prev) => !prev)}
               className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed
-                         ${isOwn ? "cursor-pointer sm:cursor-default" : ""}`}
+                        ${isOwn ? "cursor-pointer sm:cursor-default" : ""}`}
               style={
                 isOwn
                   ? {
@@ -213,7 +213,7 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
               )}
             </div>
 
-            {/* ⏱ TIME */}
+            {/* TIME */}
             <p
               className={`text-xs mt-1 text-gray-400 ${isOwn ? "text-right" : "text-left"}`}
             >

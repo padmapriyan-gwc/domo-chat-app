@@ -40,8 +40,8 @@ export function RoomItem({
       <div className="relative flex-shrink-0">
         <div
           className={`w-10 h-10 rounded-full flex items-center
-                       justify-center text-sm font-semibold
-                       text-white ${bg}`}
+                      justify-center text-sm font-semibold
+                      text-white ${bg}`}
         >
           {initial}
         </div>
@@ -103,9 +103,9 @@ export function RoomItem({
           {/* ✅ Badge — flex-shrink-0 ensures it never gets squeezed */}
           {unreadCount > 0 && !isActive && (
             <span
-              className="flex-shrink-0 min-w-[20px] h-5 px-1.5
-                           rounded-full flex items-center justify-center
-                           text-xs font-bold text-white"
+              className="shrink-0 min-w-[20px] h-5 px-1.5
+                          rounded-full flex items-center justify-center
+                          text-xs font-bold text-white"
               style={{
                 background: "linear-gradient(135deg, #7c3aed, #a855f7)",
               }}

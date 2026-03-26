@@ -94,15 +94,15 @@ export function ChatWindow({ room, onBack }) {
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3
-                   border-b border-gray-100 shrink-0 bg-violet-50"
+                  border-b border-gray-100 shrink-0 bg-violet-50"
       >
         <div className="flex items-center gap-3">
           {/* Mobile back */}
           <button
             onClick={onBack}
             className="md:hidden w-8 h-8 flex items-center justify-center
-                       text-gray-400 hover:text-gray-600 rounded-lg
-                       hover:bg-gray-100 transition-all"
+                      text-gray-400 hover:text-gray-600 rounded-lg
+                      hover:bg-gray-100 transition-all"
           >
             ←
           </button>
@@ -121,7 +121,7 @@ export function ChatWindow({ room, onBack }) {
             {room?.type === "dm" && isUserOnline && (
               <span
                 className="absolute bottom-0 right-0 w-2.5 h-2.5
-                           bg-green-400 rounded-full border-2 border-white"
+                          bg-green-400 rounded-full border-2 border-white"
               />
             )}
           </div>
@@ -154,7 +154,7 @@ export function ChatWindow({ room, onBack }) {
       {/* Messages */}
       <div
         className="flex-1 overflow-y-auto px-5 py-5 space-y-1
-                   bg-gradient-to-b from-transparent to-purple-50/40"
+                  bg-linear-to-b from-transparent to-purple-50/40"
       >
         {loading ? (
           <LoadingSpinner text="Loading messages..." />

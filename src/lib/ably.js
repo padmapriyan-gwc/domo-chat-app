@@ -18,8 +18,8 @@ export const getAbly = (username) => {
 
   // Close old instance if user changed
   if (ablyInstance && currentClientId !== username) {
-    try { ablyInstance.close(); 
-
+    try { 
+      ablyInstance.close();
     } 
     catch (err) {
       console.error('[Ably] Failed to close old instance:', err);

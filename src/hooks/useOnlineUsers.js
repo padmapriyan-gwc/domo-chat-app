@@ -21,7 +21,7 @@ export function useOnlineUsers(username) {
           if (ably.connection.state === 'connected') {
             resolve();
           } else if (ably.connection.state === 'failed' ||
-                     ably.connection.state === 'closed') {
+                    ably.connection.state === 'closed') {
             reject(new Error('Connection failed'));
           } else {
             ably.connection.once('connected', resolve);

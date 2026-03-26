@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from "react";
 import { ChatService } from "../services/chatService";
 import { getAbly, getChannel } from "../lib/ably";

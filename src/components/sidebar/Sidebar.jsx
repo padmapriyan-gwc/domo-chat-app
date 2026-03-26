@@ -112,7 +112,7 @@ export function Sidebar({
                 transition-all duration-150
                 ${
                   activeTab === tab.id
-                    ? "bg-gradient-to-r from-violet-100 to-pink-100 text-gray-500 shadow-sm"
+                    ? "bg-linear-to-r from-violet-100 to-pink-100 text-gray-500 shadow-sm"
                     : "text-gray-500 hover:text-gray-700 hover:bg-white"
                 }`}
             >
@@ -135,13 +135,13 @@ export function Sidebar({
       />
 
       {/* Footer */}
-      <div className="flex flex-row px-4 py-3 border-t border-pink-50 flex-shrink-0">
+      <div className="flex flex-row px-4 py-3 border-t border-pink-50 shrink-0">
         <button
           onClick={onLogout}
           title="Logout"
           className="btn-icon w-9 h-9 rounded-xl flex items-center justify-center
-                     text-red-400 hover:text-red-300
-                     hover:bg-black/10 active:scale-95 transition-all duration-200"
+                    text-red-400 hover:text-red-300
+                    hover:bg-black/10 active:scale-95 transition-all duration-200"
         >
           <LogOut size={18} />
         </button>

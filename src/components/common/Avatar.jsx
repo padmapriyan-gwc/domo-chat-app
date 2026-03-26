@@ -14,7 +14,7 @@ export function Avatar({ name = '', size = 'md' }) {
     <div className={`
       ${sizes[size]} ${bg} ${text}
       rounded-full flex items-center justify-center
-      font-semibold flex-shrink-0
+      font-semibold shrink-0
     `}>
       {name?.[0]?.toUpperCase() || '?'}
     </div>

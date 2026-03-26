@@ -16,7 +16,10 @@ export const AuthProvider = ({ children }) => {
           return parsed;
         }
       }
-    } catch (_) {}
+    }
+      catch (err) {
+        console.error('[Auth] Failed to load user from storage:', err);
+      }
     return null;
   });
 
@@ -38,4 +41,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

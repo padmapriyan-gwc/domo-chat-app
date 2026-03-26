@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from "react";
 import { ChatService } from "../services/chatService";
 import { getChannel } from "../lib/ably";
@@ -114,7 +115,7 @@ export function useMessages(roomId, currentUser) {
     };
   }, [roomId, currentUser]);
 
-  // 🔥 SEND MESSAGE (CORRECT ORDER)
+  // SEND MESSAGE (CORRECT ORDER)
   const sendMessage = async (text, sender) => {
     const msg = {
       sender,
@@ -135,7 +136,7 @@ export function useMessages(roomId, currentUser) {
       prev.map((m) => (m.id === temp.id ? saved : m))
     );
 
-    // 🔥 REALTIME BROADCAST
+    // REALTIME BROADCAST
     if (channelRef.current) {
       channelRef.current.publish("new-message", saved);
     }
