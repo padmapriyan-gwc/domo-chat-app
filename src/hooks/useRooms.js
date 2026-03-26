@@ -62,6 +62,27 @@ export function useRooms(username, activeRoomId) {
     });
   };
 
+  // const subscribeAbly = () => {
+  //   if (!username) return;
+
+  //   const ably = getAbly(username);
+  //   if (!ably) return;
+
+  //   const channel = ably.channels.get(`user-${username}`);
+  //   channelRef.current = channel;
+
+  //   channel.subscribe("new-room", (ablyMsg) => {
+  //     const newRoom = ablyMsg.data;
+
+  //     setRooms((prev) => {
+  //       const exists = prev.some((r) => r.id === newRoom.id);
+  //       if (exists) return prev;
+  //       subscribeRoomForUnread(newRoom.id);
+  //       return [...prev, newRoom];
+  //     });
+  //   });
+  // };
+
   const subscribeAbly = () => {
     if (!username) return;
 
@@ -73,12 +94,30 @@ export function useRooms(username, activeRoomId) {
 
     channel.subscribe("new-room", (ablyMsg) => {
       const newRoom = ablyMsg.data;
-
       setRooms((prev) => {
         const exists = prev.some((r) => r.id === newRoom.id);
         if (exists) return prev;
         subscribeRoomForUnread(newRoom.id);
         return [...prev, newRoom];
+      });
+    });
+
+    // ← add this
+    channel.subscribe("room-updated", (ablyMsg) => {
+      const updatedRoom = ablyMsg.data;
+      setRooms((prev) => {
+        // If user was removed — remove room from their list
+        if (!updatedRoom.members.includes(username)) {
+          return prev.filter((r) => r.id !== updatedRoom.id);
+        }
+        // Update existing room
+        const exists = prev.some((r) => r.id === updatedRoom.id);
+        if (exists) {
+          return prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r));
+        }
+        // New room added (user was added to group)
+        subscribeRoomForUnread(updatedRoom.id);
+        return [...prev, updatedRoom];
       });
     });
   };

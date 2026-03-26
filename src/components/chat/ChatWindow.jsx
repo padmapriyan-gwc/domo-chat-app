@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useMessages } from "../../hooks/useMessages";
 import { useOnlineUsers } from "../../hooks/useOnlineUsers";
@@ -8,17 +8,38 @@ import { DateSeparator } from "./DateSeparator";
 import { TypingIndicator } from "./TypingIndicator";
 import { LoadingSpinner } from "../common/LoadingSpinner";
 import { getUserColor, formatDateSeparator } from "../../utils/helpers";
+import { GroupMembersModal } from "../modals/GroupMembersModal";
 
 export function ChatWindow({ room, onBack }) {
   const { user } = useAuth();
   const bottomRef = useRef(null);
 
-  const roomId = room?.id || "general";
+  const [showMembers, setShowMembers] = useState(false);
+  const [currentRoom, setCurrentRoom] = useState(room);
+
+  // ✅ FIX 1: sync room prop changes to currentRoom
+  useEffect(() => {
+    // ✅ Only update if id is the same — prevents message reload
+    if (room?.id === currentRoom?.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentRoom(room);
+    } else {
+      setCurrentRoom(room);
+      // id changed = genuinely new room, messages will reload correctly
+    }
+  }, [room?.id, room?.members]);
+
+  const handleRoomUpdated = (updatedRoom) => {
+    setCurrentRoom(updatedRoom);
+  };
+
+  // ✅ FIX 2: use currentRoom everywhere
+  const roomId = currentRoom?.id || "general";
 
   const roomName =
-    room?.type === "dm"
-      ? room.members?.find((m) => m !== user.username) || "Chat"
-      : room?.name || "general";
+    currentRoom?.type === "dm"
+      ? currentRoom.members?.find((m) => m !== user.username) || "Chat"
+      : currentRoom?.name || "general";
 
   const {
     messages,
@@ -32,18 +53,15 @@ export function ChatWindow({ room, onBack }) {
 
   const onlineUsers = useOnlineUsers(user.username);
 
-  // ✅ FIXED ONLINE STATUS (same as RoomItem)
+  // ✅ FIX 3: use currentRoom for dmUser
   const dmUser =
-    room?.type === "dm"
-      ? room.members?.find((m) => m !== user.username)
+    currentRoom?.type === "dm"
+      ? currentRoom.members?.find((m) => m !== user.username)
       : null;
 
-  const isUserOnline =
-    dmUser
-      ? onlineUsers.some(
-          (u) => u.toLowerCase() === dmUser.toLowerCase()
-        )
-      : false;
+  const isUserOnline = dmUser
+    ? onlineUsers.some((u) => u.toLowerCase() === dmUser.toLowerCase())
+    : false;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,13 +79,14 @@ export function ChatWindow({ room, onBack }) {
 
       if (msgDate !== lastDate) {
         items.push(
-          <DateSeparator key={`date-${msg.timestamp}`} label={msgDate} />
+          <DateSeparator key={`date-${msg.timestamp}`} label={msgDate} />,
         );
         lastDate = msgDate;
         lastSender = null;
       }
 
-      const isOwn = msg.sender === user?.username;
+      // ✅ FIX 4: case-insensitive isOwn check
+      const isOwn = msg.sender?.toLowerCase() === user?.username?.toLowerCase();
       const isGrouped = msg.sender === lastSender;
 
       items.push(
@@ -78,7 +97,7 @@ export function ChatWindow({ room, onBack }) {
           isGrouped={isGrouped}
           onDelete={deleteMessage}
           onEdit={editMessage}
-        />
+        />,
       );
 
       lastSender = msg.sender;
@@ -117,8 +136,8 @@ export function ChatWindow({ room, onBack }) {
               {roomName[0]?.toUpperCase()}
             </div>
 
-            {/* ✅ Online indicator */}
-            {room?.type === "dm" && isUserOnline && (
+            {/* ✅ Online indicator — only for DMs */}
+            {currentRoom?.type === "dm" && isUserOnline && (
               <span
                 className="absolute bottom-0 right-0 w-2.5 h-2.5
                            bg-green-400 rounded-full border-2 border-white"
@@ -131,17 +150,17 @@ export function ChatWindow({ room, onBack }) {
               {roomName}
             </p>
 
-            {/* ✅ Status text */}
+            {/* ✅ Status text — correct per room type */}
             <p className="text-xs font-medium">
-              {room?.type === "dm" ? (
+              {currentRoom?.type === "dm" ? (
                 isUserOnline ? (
                   <span className="text-green-500">Online</span>
                 ) : (
                   <span className="text-gray-400">Offline</span>
                 )
-              ) : room?.type === "group" ? (
+              ) : currentRoom?.type === "group" ? (
                 <span className="text-gray-400">
-                  {room.members?.length || 0} members
+                  {currentRoom.members?.length || 0} members
                 </span>
               ) : (
                 <span className="text-gray-400">Public channel</span>
@@ -149,6 +168,31 @@ export function ChatWindow({ room, onBack }) {
             </p>
           </div>
         </div>
+
+        {/* ✅ Group members button */}
+        {currentRoom?.type === "group" && (
+          <button
+            onClick={() => setShowMembers(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+               text-xs font-semibold text-purple-600 bg-purple-50
+               hover:bg-purple-100 transition-all"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
+            {currentRoom.members?.length} members
+          </button>
+        )}
       </div>
 
       {/* Messages */}
@@ -163,9 +207,7 @@ export function ChatWindow({ room, onBack }) {
             <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center text-3xl shadow-sm">
               💬
             </div>
-            <p className="text-gray-400 text-sm">
-              Start the conversation ✨
-            </p>
+            <p className="text-gray-400 text-sm">Start the conversation ✨</p>
           </div>
         ) : (
           renderMessages()
@@ -182,6 +224,14 @@ export function ChatWindow({ room, onBack }) {
         onSend={handleSend}
         onTyping={() => publishTyping(user.username)}
       />
+
+      {showMembers && currentRoom?.type === "group" && (
+        <GroupMembersModal
+          room={currentRoom}
+          onClose={() => setShowMembers(false)}
+          onUpdated={handleRoomUpdated}
+        />
+      )}
     </div>
   );
 }
