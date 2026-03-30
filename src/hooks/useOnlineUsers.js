@@ -1,32 +1,39 @@
-import { useEffect, useState } from 'react';
-import { getAbly } from '../lib/ably';
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getAbly } from "../lib/ably";
+import {
+  addOnlineUser,
+  removeOnlineUser,
+  setOnlineUsers,
+} from "../store/presenceSlice";
 
 export function useOnlineUsers(username) {
-  const [onlineUsers, setOnlineUsers] = useState([]);
+  const dispatch = useDispatch();
+  const onlineUsers = useSelector((state) => state.presence.onlineUsers);
 
   useEffect(() => {
-    // Guard — don't run without valid username
-    if (!username || typeof username !== 'string') return;
+    if (!username || typeof username !== "string") return;
 
     const ably = getAbly(username);
     if (!ably) return;
 
-    const channel = ably.channels.get('global-presence');
+    const channel = ably.channels.get("global-presence");
     let mounted = true;
 
     const init = async () => {
       try {
-        // Wait for connection
         await new Promise((resolve, reject) => {
-          if (ably.connection.state === 'connected') {
+          if (ably.connection.state === "connected") {
             resolve();
-          } else if (ably.connection.state === 'failed' ||
-                     ably.connection.state === 'closed') {
-            reject(new Error('Connection failed'));
+          } else if (
+            ably.connection.state === "failed" ||
+            ably.connection.state === "closed"
+          ) {
+            reject(new Error("Connection failed"));
           } else {
-            ably.connection.once('connected', resolve);
-            ably.connection.once('failed', reject);
-            ably.connection.once('closed', reject);
+            ably.connection.once("connected", resolve);
+            ably.connection.once("failed", reject);
+            ably.connection.once("closed", reject);
           }
         });
 
@@ -36,41 +43,33 @@ export function useOnlineUsers(username) {
 
         const members = await channel.presence.get();
         if (mounted) {
-          setOnlineUsers(members.map(m => m.clientId));
+          dispatch(setOnlineUsers(members.map((member) => member.clientId)));
         }
 
-        channel.presence.subscribe('enter', (member) => {
+        channel.presence.subscribe("enter", (member) => {
           if (!mounted) return;
-          setOnlineUsers(prev =>
-            prev.includes(member.clientId)
-              ? prev
-              : [...prev, member.clientId]
-          );
+          dispatch(addOnlineUser(member.clientId));
         });
 
-        channel.presence.subscribe('leave', (member) => {
+        channel.presence.subscribe("leave", (member) => {
           if (!mounted) return;
-          setOnlineUsers(prev =>
-            prev.filter(u => u !== member.clientId)
-          );
+          dispatch(removeOnlineUser(member.clientId));
         });
 
-        // Re-sync on reconnect
-        ably.connection.on('connected', async () => {
+        ably.connection.on("connected", async () => {
           if (!mounted) return;
           try {
             await channel.presence.enter({ username });
             const members = await channel.presence.get();
             if (mounted) {
-              setOnlineUsers(members.map(m => m.clientId));
+              dispatch(setOnlineUsers(members.map((member) => member.clientId)));
             }
           } catch (err) {
-            console.error('[Presence] Re-sync failed:', err);
+            console.error("[Presence] Re-sync failed:", err);
           }
         });
-
       } catch (err) {
-        console.error('[Presence] Init failed:', err);
+        console.error("[Presence] Init failed:", err);
       }
     };
 
@@ -83,10 +82,10 @@ export function useOnlineUsers(username) {
         channel.presence.unsubscribe();
         ably.connection.off();
       } catch (err) {
-        console.error('[Presence] Cleanup failed:', err);
+        console.error("[Presence] Cleanup failed:", err);
       }
     };
-  }, [username]);
+  }, [username, dispatch]);
 
   return onlineUsers;
 }

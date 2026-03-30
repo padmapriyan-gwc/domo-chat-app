@@ -1,34 +1,30 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { clearUser, setUser } from "../store/authSlice";
+import { resetMessagesState } from "../store/messagesSlice";
+import { resetPresenceState } from "../store/presenceSlice";
+import { resetRoomsState } from "../store/roomsSlice";
+import { resetUiState } from "../store/uiSlice";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    // Check both localStorage (remember me) and sessionStorage
-    try {
-      // const local   = localStorage.getItem('chat_user');
-      // const session = sessionStorage.getItem('chat_user');
-      const stored = sessionStorage.getItem('chat_user');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Validate — must have username string
-        if (parsed?.username && typeof parsed.username === 'string') {
-          return parsed;
-        }
-      }
-    } catch (_) {}
-    return null;
-  });
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
 
   const login = (userData) => {
-    sessionStorage.setItem('chat_user', JSON.stringify(userData));
-    setUser(userData);
+    sessionStorage.setItem("chat_user", JSON.stringify(userData));
+    dispatch(setUser(userData));
   };
 
   const logout = () => {
-    localStorage.removeItem('chat_user');
-    sessionStorage.removeItem('chat_user');
-    setUser(null);
+    localStorage.removeItem("chat_user");
+    sessionStorage.removeItem("chat_user");
+    dispatch(clearUser());
+    dispatch(resetRoomsState());
+    dispatch(resetMessagesState());
+    dispatch(resetPresenceState());
+    dispatch(resetUiState());
   };
 
   return (
@@ -38,4 +34,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

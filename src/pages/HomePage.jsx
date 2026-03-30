@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from '../components/sidebar/Sidebar';
 import { ChatWindow } from '../components/chat/ChatWindow';
 import { NewChatModal } from '../components/modals/NewChatModal';
 import { NewGroupModal } from '../components/modals/NewGroupModal';
-import { DEFAULT_ROOM } from '../constants';
+import { upsertRoom } from '../store/roomsSlice';
+import { setActiveRoom } from '../store/uiSlice';
 
 export default function HomePage() {
   const { logout } = useAuth();
   const navigate   = useNavigate();
+  const dispatch = useDispatch();
+  const activeRoom = useSelector((state) => state.ui.activeRoom);
 
-  const [activeRoom, setActiveRoom]     = useState(DEFAULT_ROOM);
   const [showSidebar, setShowSidebar]   = useState(true);
   const [showNewChat, setShowNewChat]   = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -41,12 +44,13 @@ export default function HomePage() {
   };
 
   const handleSelectRoom = (room) => {
-    setActiveRoom(room);
+    dispatch(setActiveRoom(room));
     setShowSidebar(false);
   };
 
   const handleRoomCreated = (room) => {
-    setActiveRoom(room);
+    dispatch(upsertRoom(room));
+    dispatch(setActiveRoom(room));
     setShowSidebar(false);
   };
 

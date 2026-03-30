@@ -1,5 +1,6 @@
 import domo from "ryuu.js";
 import { getAblyPublisher } from "../lib/ably";
+import { encryptMessage, decryptMessage } from '../utils/encryption';
 
 const BASE_URL = "/domo/datastores/v1";
 
@@ -161,28 +162,63 @@ export const createGroupAPI = (groupName, members, createdBy) =>
 // ─── MESSAGES ────────────────────────────────────────────────────────────────
 
 export const fetchMessagesAPI = (roomId) =>
-  queryDocs(COLLECTIONS.MESSAGES, { "content.roomId": { $eq: roomId } }).then(
-    (res) =>
-      Array.isArray(res)
-        ? res
-            .map(toMessage)
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        : [],
-  );
+  queryDocs(COLLECTIONS.MESSAGES, { 'content.roomId': { $eq: roomId } })
+    .then(async (res) => {
+      if (!Array.isArray(res)) return [];
 
-export const sendMessageAPI = ({ sender, message, roomId }) =>
-  createDoc(COLLECTIONS.MESSAGES, {
+      const messages = res
+        .map(toMessage)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      // Decrypt all messages in parallel
+      const decrypted = await Promise.all(
+        messages.map(async (msg) => {
+          if (msg.type === 'file') return msg; // don't decrypt file messages
+          try {
+            const plain = await decryptMessage(msg.message);
+            return { ...msg, message: plain };
+          } catch {
+            return { ...msg, message: '[Encrypted message]' };
+          }
+        })
+      );
+
+      return decrypted;
+    });
+
+export const sendMessageAPI = async ({ sender, message, roomId, type = 'text', fileData = null }) => {
+  // Encrypt text messages only
+  const encryptedMessage = type === 'text'
+    ? await encryptMessage(message)
+    : message; // file names not encrypted (only metadata)
+
+  const content = {
     sender,
-    message,
+    message: encryptedMessage,
     timestamp: new Date().toISOString(),
     roomId,
-    edited: "false",
-  })
-    .then(toMessage)
-    .then((saved) => {
-      publishToRoom(roomId, "new-message", saved);
-      return saved;
-    });
+    edited: 'false',
+    type, // 'text' or 'file'
+    ...(fileData && {
+      fileName:     fileData.fileName,
+      fileSize:     fileData.fileSize,
+      fileType:     fileData.fileType,
+      fileData:     fileData.base64,   // base64 encoded file
+    }),
+  };
+
+  const res  = await createDoc(COLLECTIONS.MESSAGES, content);
+  const saved = toMessage(res);
+
+  // Publish decrypted version to Ably
+  // (so recipients see plain text instantly without re-fetching)
+  publishToRoom(roomId, 'new-message', {
+    ...saved,
+    message, // plain text for Ably real-time
+  });
+
+  return { ...saved, message }; // return plain text to sender too
+};
 
 // roomId is required so Ably can notify the correct channel
 export const deleteMessageAPI = (id, roomId) =>
@@ -193,27 +229,28 @@ export const deleteMessageAPI = (id, roomId) =>
 
 export const editMessageAPI = (id, newMessage, originalMsg) =>
   deleteDoc(COLLECTIONS.MESSAGES, id)
-    .then(() =>
+    .then(() => encryptMessage(newMessage)) // encrypt edited message
+    .then((encryptedMessage) =>
       createDoc(COLLECTIONS.MESSAGES, {
-        sender: originalMsg.sender,
-        message: newMessage,
+        sender:    originalMsg.sender,
+        message:   encryptedMessage,
         timestamp: originalMsg.timestamp,
-        roomId: originalMsg.roomId,
-        edited: "true",
-      }),
+        roomId:    originalMsg.roomId,
+        edited:    'true',
+        type:      'text',
+      })
     )
     .then(toMessage)
-    .then((saved) => {
-      // Send oldId so other users can find and replace the correct message
-      publishToRoom(originalMsg.roomId, "edit-message", {
-        oldId: id, // ← the id other users have in their state
-        newId: saved.id, // ← the new id after recreate
+    .then(async (saved) => {
+      publishToRoom(originalMsg.roomId, 'edit-message', {
+        oldId: id,
         ...saved,
+        message: newMessage, // plain text over Ably
       });
-      return saved;
+      return { ...saved, message: newMessage };
     })
     .catch((err) => {
-      console.error("Edit failed:", err);
+      console.error('Edit failed:', err);
       throw err;
     });
 

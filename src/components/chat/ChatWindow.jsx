@@ -67,7 +67,19 @@ export function ChatWindow({ room, onBack }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (text) => sendMessage(text, user.username);
+  // const handleSend = (text) => sendMessage(text, user.username);
+  const handleSend = (text, fileData = null) => {
+  if (fileData) {
+    // Send as file message
+    sendMessage('', user.username, {
+      type: 'file',
+      fileData,
+    });
+  } else {
+    // Send as regular text message
+    sendMessage(text, user.username);
+  }
+};
 
   const renderMessages = () => {
     const items = [];

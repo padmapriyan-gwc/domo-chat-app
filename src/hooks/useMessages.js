@@ -1,103 +1,38 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { ChatService } from "../services/chatService";
 import { getChannel } from "../lib/ably";
 import { playNotificationSound } from "../utils/helpers";
+import {
+  addMessageIfMissing,
+  addTypingUser,
+  clearTypingUsers,
+  removeMessage,
+  removeTypingUser,
+  replaceTempMessage,
+  setRoomLoading,
+  setRoomMessages,
+  setRoomOnline,
+  updateMessage,
+} from "../store/messagesSlice";
 
 export function useMessages(roomId, currentUser) {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [online, setOnline] = useState(true);
-  const [typingUsers, setTypingUsers] = useState([]);
+  const dispatch = useDispatch();
+  const messages = useSelector((state) => state.messages.byRoom[roomId] || []);
+  const loading = useSelector(
+    (state) => state.messages.loadingByRoom[roomId] ?? true,
+  );
+  const online = useSelector(
+    (state) => state.messages.onlineByRoom[roomId] ?? true,
+  );
+  const typingUsers = useSelector(
+    (state) => state.messages.typingByRoom[roomId] || [],
+  );
 
   const channelRef = useRef(null);
   const typingTimeouts = useRef({});
   const handlersRef = useRef({});
 
-  // 🔹 LOAD HISTORY
-  const loadHistory = async () => {
-    try {
-      const data = await ChatService.fetchMessages(roomId);
-      setMessages(data);
-      setOnline(true);
-    } catch {
-      setOnline(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 SUBSCRIBE TO ABLY
-  const subscribeAbly = () => {
-    if (!roomId || !currentUser) return;
-
-    // ❗ Prevent duplicate subscriptions
-    if (channelRef.current) return;
-
-    const channel = getChannel(roomId, currentUser);
-    if (!channel) return;
-
-    channelRef.current = channel;
-
-    const handleNewMessage = (ablyMsg) => {
-      const incoming = ablyMsg.data;
-
-      setMessages((prev) => {
-        const exists = prev.some((m) => m.id === incoming.id);
-        if (exists) return prev;
-
-        if (incoming.sender !== currentUser) {
-          playNotificationSound();
-        }
-
-        return [...prev, incoming];
-      });
-    };
-    channel.subscribe("new-message", handleNewMessage);
-
-    const handleDeleteMessage = (ablyMsg) => {
-      const { id } = ablyMsg.data;
-      setMessages((prev) => prev.filter((m) => m.id !== id));
-    };
-    channel.subscribe("delete-message", handleDeleteMessage);
-
-    const handleEditMessage = (ablyMsg) => {
-      const { oldId, ...updated } = ablyMsg.data;
-      setMessages((prev) =>
-        prev.map((m) => (m.id === oldId ? updated : m))
-      );
-    };
-    channel.subscribe("edit-message", handleEditMessage);
-
-    const handleTyping = (ablyMsg) => {
-      const { username } = ablyMsg.data;
-      if (username === currentUser) return;
-
-      setTypingUsers((prev) =>
-        prev.includes(username) ? prev : [...prev, username]
-      );
-
-      if (typingTimeouts.current[username]) {
-        clearTimeout(typingTimeouts.current[username]);
-      }
-
-      typingTimeouts.current[username] = setTimeout(() => {
-        setTypingUsers((prev) =>
-          prev.filter((u) => u !== username)
-        );
-        delete typingTimeouts.current[username];
-      }, 3000);
-    };
-    channel.subscribe("typing", handleTyping);
-
-    handlersRef.current = {
-      newMessage: handleNewMessage,
-      deleteMessage: handleDeleteMessage,
-      editMessage: handleEditMessage,
-      typing: handleTyping,
-    };
-  };
-
-  // 🔹 CLEANUP
   const unsubscribeAbly = () => {
     if (channelRef.current) {
       const handlers = handlersRef.current;
@@ -105,7 +40,10 @@ export function useMessages(roomId, currentUser) {
         channelRef.current.unsubscribe("new-message", handlers.newMessage);
       }
       if (handlers.deleteMessage) {
-        channelRef.current.unsubscribe("delete-message", handlers.deleteMessage);
+        channelRef.current.unsubscribe(
+          "delete-message",
+          handlers.deleteMessage,
+        );
       }
       if (handlers.editMessage) {
         channelRef.current.unsubscribe("edit-message", handlers.editMessage);
@@ -120,12 +58,79 @@ export function useMessages(roomId, currentUser) {
     typingTimeouts.current = {};
   };
 
-  // 🔹 EFFECT (FIXED)
   useEffect(() => {
     if (!roomId || !currentUser) return;
 
-    setLoading(true);
-    setTypingUsers([]);
+    const loadHistory = async () => {
+      try {
+        const data = await ChatService.fetchMessages(roomId);
+        dispatch(setRoomMessages({ roomId, messages: data }));
+        dispatch(setRoomOnline({ roomId, online: true }));
+      } catch {
+        dispatch(setRoomOnline({ roomId, online: false }));
+      } finally {
+        dispatch(setRoomLoading({ roomId, loading: false }));
+      }
+    };
+
+    const subscribeAbly = () => {
+      if (channelRef.current) return;
+
+      const channel = getChannel(roomId, currentUser);
+      if (!channel) return;
+
+      channelRef.current = channel;
+
+      const handleNewMessage = (ablyMsg) => {
+        const incoming = ablyMsg.data;
+
+        if (incoming.sender !== currentUser) {
+          playNotificationSound();
+        }
+
+        dispatch(addMessageIfMissing({ roomId, message: incoming }));
+      };
+      channel.subscribe("new-message", handleNewMessage);
+
+      const handleDeleteMessage = (ablyMsg) => {
+        const { id } = ablyMsg.data;
+        dispatch(removeMessage({ roomId, id }));
+      };
+      channel.subscribe("delete-message", handleDeleteMessage);
+
+      const handleEditMessage = (ablyMsg) => {
+        const { oldId, ...updated } = ablyMsg.data;
+        dispatch(updateMessage({ roomId, oldId, message: updated }));
+      };
+      channel.subscribe("edit-message", handleEditMessage);
+
+      const handleTyping = (ablyMsg) => {
+        const { username } = ablyMsg.data;
+        if (username === currentUser) return;
+
+        dispatch(addTypingUser({ roomId, username }));
+
+        if (typingTimeouts.current[username]) {
+          clearTimeout(typingTimeouts.current[username]);
+        }
+
+        typingTimeouts.current[username] = setTimeout(() => {
+          dispatch(removeTypingUser({ roomId, username }));
+          delete typingTimeouts.current[username];
+        }, 3000);
+      };
+      channel.subscribe("typing", handleTyping);
+
+      handlersRef.current = {
+        newMessage: handleNewMessage,
+        deleteMessage: handleDeleteMessage,
+        editMessage: handleEditMessage,
+        typing: handleTyping,
+      };
+    };
+
+    dispatch(setRoomLoading({ roomId, loading: true }));
+    dispatch(clearTypingUsers(roomId));
 
     loadHistory();
     subscribeAbly();
@@ -133,28 +138,37 @@ export function useMessages(roomId, currentUser) {
     return () => {
       unsubscribeAbly();
     };
-  }, [roomId, currentUser]);
+  }, [roomId, currentUser, dispatch]);
 
-  // 🔥 SEND MESSAGE (CORRECT ORDER)
-  const sendMessage = async (text, sender) => {
+  const sendMessage = async (text, sender, options = {}) => {
+    const { type = "text", fileData = null } = options;
+
     const msg = {
       sender,
-      message: text,
+      message: type === "file" ? fileData.fileName : text,
       timestamp: new Date().toISOString(),
       roomId,
+      type,
+      ...(fileData && {
+        fileName: fileData.fileName,
+        fileSize: fileData.fileSize,
+        fileType: fileData.fileType,
+        fileData: fileData.base64,
+      }),
     };
 
-    // optimistic UI
     const temp = { ...msg, id: `temp-${Date.now()}` };
-    setMessages((prev) => [...prev, temp]);
+    dispatch(addMessageIfMissing({ roomId, message: temp }));
 
-    // save to backend
-    const saved = await ChatService.sendMessage(msg);
+    const saved = await ChatService.sendMessage({
+      sender,
+      message: type === "file" ? fileData.fileName : text,
+      roomId,
+      type,
+      fileData: fileData || null,
+    });
 
-    // replace temp with real
-    setMessages((prev) =>
-      prev.map((m) => (m.id === temp.id ? saved : m))
-    );
+    dispatch(replaceTempMessage({ roomId, tempId: temp.id, message: saved }));
   };
 
   const publishTyping = (username) => {
@@ -163,27 +177,19 @@ export function useMessages(roomId, currentUser) {
     }
   };
 
-const deleteMessage = async (id) => {
-  // 1. Update local state immediately (optimistic)
-  setMessages((prev) => prev.filter((m) => m.id !== id));
+  const deleteMessage = async (id) => {
+    dispatch(removeMessage({ roomId, id }));
+  };
 
-  // 2. Delete from DB
-  await ChatService.deleteMessage(id);
-};
-
-const editMessage = async (oldId, newText, newId) => {
-  // 1. Optimistic update
-  setMessages((prev) =>
-    prev.map((m) =>
-      m.id === oldId
-        ? { ...m, id: newId, message: newText, edited: "true" }
-        : m
-    )
-  );
-
-  // 2. Save to DB
-  await ChatService.editMessage(oldId, newText, newId);
-};
+  const editMessage = async (oldId, newText, newId) => {
+    dispatch(
+      updateMessage({
+        roomId,
+        oldId,
+        message: { id: newId, message: newText, edited: "true" },
+      }),
+    );
+  };
 
   return {
     messages,
