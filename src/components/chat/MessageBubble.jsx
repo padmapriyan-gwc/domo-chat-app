@@ -11,11 +11,12 @@ export function MessageBubble({ msg, isOwn, isGrouped, onDelete, onEdit }) {
 
   const isFileMessage = msg.type === 'file';
 
-  const handleDelete = async () => {
-    await ChatService.deleteMessage(msg.id, msg.roomId);
-    onDelete(msg.id);
-    setShowConfirm(false);
-  };
+const handleDelete = async () => {
+  // Pass msg.fileId so Domo file storage gets cleaned up too
+  await ChatService.deleteMessage(msg.id, msg.roomId, msg.fileId || null);
+  onDelete(msg.id);
+  setShowConfirm(false);
+};
 
   const handleEdit = async () => {
     if (!editText.trim()) return;

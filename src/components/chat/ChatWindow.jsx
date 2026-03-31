@@ -68,18 +68,17 @@ export function ChatWindow({ room, onBack }) {
   }, [messages]);
 
   // const handleSend = (text) => sendMessage(text, user.username);
-  const handleSend = (text, fileData = null) => {
-  if (fileData) {
-    // Send as file message
-    sendMessage('', user.username, {
-      type: 'file',
-      fileData,
-    });
-  } else {
-    // Send as regular text message
-    sendMessage(text, user.username);
-  }
-};
+  
+  const handleSend = (text, file = null) => {
+    if (file) {
+      sendMessage("", user.username, {
+        type: "file",
+        file, // raw File object — Domo API uploads it
+      });
+    } else {
+      sendMessage(text, user.username);
+    }
+  };
 
   const renderMessages = () => {
     const items = [];

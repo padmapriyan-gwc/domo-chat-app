@@ -1,6 +1,7 @@
 import domo from "ryuu.js";
 import { getAblyPublisher } from "../lib/ably";
-import { encryptMessage, decryptMessage } from '../utils/encryption';
+import { encryptMessage, decryptMessage } from "../utils/encryption";
+import { uploadFileToDomo, deleteDomoFile } from "./domoFileAPI";
 
 const BASE_URL = "/domo/datastores/v1";
 
@@ -43,12 +44,10 @@ const deleteDoc = (collection, id) =>
   });
 
 const updateDoc = (collection, id, content) =>
-  domo
-    .put(`${collectionURL(collection)}/${id}`, { content })
-    .catch((err) => {
-      console.error(`[updateDoc:${collection}:${id}]`, err);
-      throw err;
-    });
+  domo.put(`${collectionURL(collection)}/${id}`, { content }).catch((err) => {
+    console.error(`[updateDoc:${collection}:${id}]`, err);
+    throw err;
+  });
 
 const toUser = (doc) => ({
   id: doc.id,
@@ -162,8 +161,8 @@ export const createGroupAPI = (groupName, members, createdBy) =>
 // ─── MESSAGES ────────────────────────────────────────────────────────────────
 
 export const fetchMessagesAPI = (roomId) =>
-  queryDocs(COLLECTIONS.MESSAGES, { 'content.roomId': { $eq: roomId } })
-    .then(async (res) => {
+  queryDocs(COLLECTIONS.MESSAGES, { "content.roomId": { $eq: roomId } }).then(
+    async (res) => {
       if (!Array.isArray(res)) return [];
 
       const messages = res
@@ -173,56 +172,117 @@ export const fetchMessagesAPI = (roomId) =>
       // Decrypt all messages in parallel
       const decrypted = await Promise.all(
         messages.map(async (msg) => {
-          if (msg.type === 'file') return msg; // don't decrypt file messages
+          if (msg.type === "file") return msg; // don't decrypt file messages
           try {
             const plain = await decryptMessage(msg.message);
             return { ...msg, message: plain };
           } catch {
-            return { ...msg, message: '[Encrypted message]' };
+            return { ...msg, message: "[Encrypted message]" };
           }
-        })
+        }),
       );
 
       return decrypted;
-    });
+    },
+  );
 
-export const sendMessageAPI = async ({ sender, message, roomId, type = 'text', fileData = null }) => {
+// export const sendMessageAPI = async ({ sender, message, roomId, type = 'text', fileData = null }) => {
+//   // Encrypt text messages only
+//   const encryptedMessage = type === 'text'
+//     ? await encryptMessage(message)
+//     : message; // file names not encrypted (only metadata)
+
+//   const content = {
+//     sender,
+//     message: encryptedMessage,
+//     timestamp: new Date().toISOString(),
+//     roomId,
+//     edited: 'false',
+//     type, // 'text' or 'file'
+//     ...(fileData && {
+//       fileName:     fileData.fileName,
+//       fileSize:     fileData.fileSize,
+//       fileType:     fileData.fileType,
+//       fileData:     fileData.base64,   // base64 encoded file
+//     }),
+//   };
+
+//   const res  = await createDoc(COLLECTIONS.MESSAGES, content);
+//   const saved = toMessage(res);
+
+//   // Publish decrypted version to Ably
+//   // (so recipients see plain text instantly without re-fetching)
+//   publishToRoom(roomId, 'new-message', {
+//     ...saved,
+//     message, // plain text for Ably real-time
+//   });
+
+//   return { ...saved, message }; // return plain text to sender too
+// };
+
+// roomId is required so Ably can notify the correct channel
+
+export const sendMessageAPI = async ({
+  sender,
+  message,
+  roomId,
+  type = "text",
+  file = null, // raw File object — NOT base64
+}) => {
+  let fileMetadata = null;
+
+  // If file message — upload to Domo file storage first
+  if (type === "file" && file) {
+    fileMetadata = await uploadFileToDomo(file);
+  }
+
   // Encrypt text messages only
-  const encryptedMessage = type === 'text'
-    ? await encryptMessage(message)
-    : message; // file names not encrypted (only metadata)
+  const encryptedMessage =
+    type === "text" ? await encryptMessage(message) : file?.name || message;
 
   const content = {
     sender,
     message: encryptedMessage,
     timestamp: new Date().toISOString(),
     roomId,
-    edited: 'false',
-    type, // 'text' or 'file'
-    ...(fileData && {
-      fileName:     fileData.fileName,
-      fileSize:     fileData.fileSize,
-      fileType:     fileData.fileType,
-      fileData:     fileData.base64,   // base64 encoded file
+    edited: "false",
+    type,
+    // Store only fileId + metadata — NOT the file itself
+    ...(fileMetadata && {
+      fileId: fileMetadata.fileId,
+      fileName: fileMetadata.fileName,
+      fileSize: fileMetadata.fileSize,
+      fileType: fileMetadata.fileType,
     }),
   };
 
-  const res  = await createDoc(COLLECTIONS.MESSAGES, content);
+  const res = await createDoc(COLLECTIONS.MESSAGES, content);
   const saved = toMessage(res);
 
-  // Publish decrypted version to Ably
-  // (so recipients see plain text instantly without re-fetching)
-  publishToRoom(roomId, 'new-message', {
+  // Publish plain text to Ably for real-time delivery
+  publishToRoom(roomId, "new-message", {
     ...saved,
-    message, // plain text for Ably real-time
+    message: type === "text" ? message : file?.name || message,
   });
 
-  return { ...saved, message }; // return plain text to sender too
+  return {
+    ...saved,
+    message: type === "text" ? message : file?.name || message,
+  };
 };
 
-// roomId is required so Ably can notify the correct channel
-export const deleteMessageAPI = (id, roomId) =>
+// export const deleteMessageAPI = (id, roomId) =>
+//   deleteDoc(COLLECTIONS.MESSAGES, id).then(() => {
+//     publishToRoom(roomId, "delete-message", { id });
+//     return id;
+//   });
+
+// Delete a file from Domo storage
+
+export const deleteMessageAPI = (id, roomId, fileId = null) =>
   deleteDoc(COLLECTIONS.MESSAGES, id).then(() => {
+    // Also delete the file from Domo storage if exists
+    if (fileId) deleteDomoFile(fileId);
     publishToRoom(roomId, "delete-message", { id });
     return id;
   });
@@ -232,17 +292,17 @@ export const editMessageAPI = (id, newMessage, originalMsg) =>
     .then(() => encryptMessage(newMessage)) // encrypt edited message
     .then((encryptedMessage) =>
       createDoc(COLLECTIONS.MESSAGES, {
-        sender:    originalMsg.sender,
-        message:   encryptedMessage,
+        sender: originalMsg.sender,
+        message: encryptedMessage,
         timestamp: originalMsg.timestamp,
-        roomId:    originalMsg.roomId,
-        edited:    'true',
-        type:      'text',
-      })
+        roomId: originalMsg.roomId,
+        edited: "true",
+        type: "text",
+      }),
     )
     .then(toMessage)
     .then(async (saved) => {
-      publishToRoom(originalMsg.roomId, 'edit-message', {
+      publishToRoom(originalMsg.roomId, "edit-message", {
         oldId: id,
         ...saved,
         message: newMessage, // plain text over Ably
@@ -250,7 +310,7 @@ export const editMessageAPI = (id, newMessage, originalMsg) =>
       return { ...saved, message: newMessage };
     })
     .catch((err) => {
-      console.error('Edit failed:', err);
+      console.error("Edit failed:", err);
       throw err;
     });
 
@@ -272,7 +332,10 @@ export const addGroupMemberAPI = async (roomId, newMember, currentMembers) => {
   };
 
   await updateDoc(COLLECTIONS.ROOMS, roomId, nextContent);
-  const room = { ...toRoom({ id: roomId, content: nextContent }), members: updatedMembers };
+  const room = {
+    ...toRoom({ id: roomId, content: nextContent }),
+    members: updatedMembers,
+  };
   publishToUsers(updatedMembers, "room-updated", room);
   return room;
 };
@@ -296,7 +359,10 @@ export const updateGroupMembersAPI = async (
   };
 
   await updateDoc(COLLECTIONS.ROOMS, roomId, nextContent);
-  const room = { ...toRoom({ id: roomId, content: nextContent }), members: updatedMembers };
+  const room = {
+    ...toRoom({ id: roomId, content: nextContent }),
+    members: updatedMembers,
+  };
 
   // Notify all old + new members
   const allAffected = [...new Set([...members, ...updatedMembers])];

@@ -140,32 +140,65 @@ export function useMessages(roomId, currentUser) {
     };
   }, [roomId, currentUser, dispatch]);
 
-  const sendMessage = async (text, sender, options = {}) => {
-    const { type = "text", fileData = null } = options;
+  // const sendMessage = async (text, sender, options = {}) => {
+  //   const { type = "text", fileData = null } = options;
 
-    const msg = {
+  //   const msg = {
+  //     sender,
+  //     message: type === "file" ? fileData.fileName : text,
+  //     timestamp: new Date().toISOString(),
+  //     roomId,
+  //     type,
+  //     ...(fileData && {
+  //       fileName: fileData.fileName,
+  //       fileSize: fileData.fileSize,
+  //       fileType: fileData.fileType,
+  //       fileData: fileData.base64,
+  //     }),
+  //   };
+
+  //   const temp = { ...msg, id: `temp-${Date.now()}` };
+  //   dispatch(addMessageIfMissing({ roomId, message: temp }));
+
+  //   const saved = await ChatService.sendMessage({
+  //     sender,
+  //     message: type === "file" ? fileData.fileName : text,
+  //     roomId,
+  //     type,
+  //     fileData: fileData || null,
+  //   });
+
+  //   dispatch(replaceTempMessage({ roomId, tempId: temp.id, message: saved }));
+  // };
+
+  const sendMessage = async (text, sender, options = {}) => {
+    const { type = "text", file = null } = options; // file = raw File object
+
+    const tempMessage = type === "file" ? file?.name : text;
+
+    const temp = {
       sender,
-      message: type === "file" ? fileData.fileName : text,
+      message: tempMessage,
       timestamp: new Date().toISOString(),
       roomId,
       type,
-      ...(fileData && {
-        fileName: fileData.fileName,
-        fileSize: fileData.fileSize,
-        fileType: fileData.fileType,
-        fileData: fileData.base64,
+      id: `temp-${Date.now()}`,
+      // Show preview info while uploading
+      ...(file && {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
       }),
     };
 
-    const temp = { ...msg, id: `temp-${Date.now()}` };
     dispatch(addMessageIfMissing({ roomId, message: temp }));
 
     const saved = await ChatService.sendMessage({
       sender,
-      message: type === "file" ? fileData.fileName : text,
+      message: type === "text" ? text : file?.name || "",
       roomId,
       type,
-      fileData: fileData || null,
+      file: type === "file" ? file : null, // pass raw File object
     });
 
     dispatch(replaceTempMessage({ roomId, tempId: temp.id, message: saved }));
@@ -177,9 +210,15 @@ export function useMessages(roomId, currentUser) {
     }
   };
 
-  const deleteMessage = async (id) => {
-    dispatch(removeMessage({ roomId, id }));
-  };
+  // const deleteMessage = async (id) => {
+  //   dispatch(removeMessage({ roomId, id }));
+  // };
+
+  // eslint-disable-next-line no-unused-vars
+  const deleteMessage = async (id, fileId = null) => {
+  dispatch(removeMessage({ roomId, id }));
+  // fileId passed through so Domo storage also gets cleaned up
+};
 
   const editMessage = async (oldId, newText, newId) => {
     dispatch(

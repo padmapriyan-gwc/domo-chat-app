@@ -13,7 +13,7 @@ import {
 export const ChatService = {
   fetchMessages:        (roomId)                      => fetchMessagesAPI(roomId),
   sendMessage:          (payload)                     => sendMessageAPI(payload),
-  deleteMessage:        (id, roomId)                  => deleteMessageAPI(id, roomId),
+  deleteMessage:        (id, roomId, fileId = null)   => deleteMessageAPI(id, roomId, fileId),
   editMessage:          (id, newMessage, originalMsg) => editMessageAPI(id, newMessage, originalMsg),
   fetchRooms:           (username)                    => fetchRoomsAPI(username),
   createDM:             (userA, userB)                => createDMAPI(userA, userB),
