@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useMessages } from "../../hooks/useMessages";
 import { useOnlineUsers } from "../../hooks/useOnlineUsers";
@@ -17,23 +17,20 @@ export function ChatWindow({ room, onBack }) {
   const [showMembers, setShowMembers] = useState(false);
   const [currentRoom, setCurrentRoom] = useState(room);
 
-  // ✅ FIX 1: sync room prop changes to currentRoom
   useEffect(() => {
-    // ✅ Only update if id is the same — prevents message reload
     if (room?.id === currentRoom?.id) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentRoom(room);
-    } else {
-      setCurrentRoom(room);
-      // id changed = genuinely new room, messages will reload correctly
+      return;
     }
+
+    setCurrentRoom(room);
   }, [room?.id, room?.members]);
 
   const handleRoomUpdated = (updatedRoom) => {
     setCurrentRoom(updatedRoom);
   };
 
-  // ✅ FIX 2: use currentRoom everywhere
   const roomId = currentRoom?.id || "general";
 
   const roomName =
@@ -53,7 +50,6 @@ export function ChatWindow({ room, onBack }) {
 
   const onlineUsers = useOnlineUsers(user.username);
 
-  // ✅ FIX 3: use currentRoom for dmUser
   const dmUser =
     currentRoom?.type === "dm"
       ? currentRoom.members?.find((m) => m !== user.username)
@@ -67,17 +63,15 @@ export function ChatWindow({ room, onBack }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // const handleSend = (text) => sendMessage(text, user.username);
-  
-  const handleSend = (text, file = null) => {
+  const handleSend = async (text, file = null) => {
     if (file) {
-      sendMessage("", user.username, {
+      return sendMessage("", user.username, {
         type: "file",
-        file, // raw File object — Domo API uploads it
+        file,
       });
-    } else {
-      sendMessage(text, user.username);
     }
+
+    return sendMessage(text, user.username);
   };
 
   const renderMessages = () => {
@@ -96,7 +90,6 @@ export function ChatWindow({ room, onBack }) {
         lastSender = null;
       }
 
-      // ✅ FIX 4: case-insensitive isOwn check
       const isOwn = msg.sender?.toLowerCase() === user?.username?.toLowerCase();
       const isGrouped = msg.sender === lastSender;
 
@@ -121,23 +114,20 @@ export function ChatWindow({ room, onBack }) {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3
                    border-b border-violet-200/70 shrink-0 bg-gradient-to-r from-violet-100/70 via-violet-50/70 to-pink-100/55"
       >
         <div className="flex items-center gap-3">
-          {/* Mobile back */}
           <button
             onClick={onBack}
             className="md:hidden w-8 h-8 flex items-center justify-center
                        text-gray-400 hover:text-gray-600 rounded-lg
                        hover:bg-gray-100 transition-all"
           >
-            ←
+            {"<-"}
           </button>
 
-          {/* Avatar */}
           <div className="relative">
             <div
               className={`w-9 h-9 rounded-full flex items-center
@@ -147,7 +137,6 @@ export function ChatWindow({ room, onBack }) {
               {roomName[0]?.toUpperCase()}
             </div>
 
-            {/* ✅ Online indicator — only for DMs */}
             {currentRoom?.type === "dm" && isUserOnline && (
               <span
                 className="absolute bottom-0 right-0 w-2.5 h-2.5
@@ -161,7 +150,6 @@ export function ChatWindow({ room, onBack }) {
               {roomName}
             </p>
 
-            {/* ✅ Status text — correct per room type */}
             <p className="text-xs font-medium">
               {currentRoom?.type === "dm" ? (
                 isUserOnline ? (
@@ -180,7 +168,6 @@ export function ChatWindow({ room, onBack }) {
           </div>
         </div>
 
-        {/* ✅ Group members button */}
         {currentRoom?.type === "group" && (
           <button
             onClick={() => setShowMembers(true)}
@@ -206,7 +193,6 @@ export function ChatWindow({ room, onBack }) {
         )}
       </div>
 
-      {/* Messages */}
       <div
         className="flex-1 overflow-y-auto px-5 py-5 space-y-1
                    bg-gradient-to-b from-violet-100/65 via-violet-50/35 to-pink-100/45"
@@ -216,9 +202,9 @@ export function ChatWindow({ room, onBack }) {
         ) : messages.length === 0 ? (
           <div className="flex flex-col justify-center items-center h-full gap-4">
             <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center text-3xl shadow-sm">
-              💬
+              {"..."}
             </div>
-            <p className="text-gray-400 text-sm">Start the conversation ✨</p>
+            <p className="text-gray-400 text-sm">Start the conversation</p>
           </div>
         ) : (
           renderMessages()
@@ -227,10 +213,8 @@ export function ChatWindow({ room, onBack }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Typing */}
       <TypingIndicator typingUsers={typingUsers} />
 
-      {/* Input */}
       <MessageInput
         onSend={handleSend}
         onTyping={() => publishTyping(user.username)}

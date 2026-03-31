@@ -175,6 +175,7 @@ export function useMessages(roomId, currentUser) {
     const { type = "text", file = null } = options; // file = raw File object
 
     const tempMessage = type === "file" ? file?.name : text;
+    const tempId = `temp-${Date.now()}`;
 
     const temp = {
       sender,
@@ -182,7 +183,7 @@ export function useMessages(roomId, currentUser) {
       timestamp: new Date().toISOString(),
       roomId,
       type,
-      id: `temp-${Date.now()}`,
+      id: tempId,
       // Show preview info while uploading
       ...(file && {
         fileName: file.name,
@@ -193,15 +194,21 @@ export function useMessages(roomId, currentUser) {
 
     dispatch(addMessageIfMissing({ roomId, message: temp }));
 
-    const saved = await ChatService.sendMessage({
-      sender,
-      message: type === "text" ? text : file?.name || "",
-      roomId,
-      type,
-      file: type === "file" ? file : null, // pass raw File object
-    });
+    try {
+      const saved = await ChatService.sendMessage({
+        sender,
+        message: type === "text" ? text : file?.name || "",
+        roomId,
+        type,
+        file: type === "file" ? file : null, // pass raw File object
+      });
 
-    dispatch(replaceTempMessage({ roomId, tempId: temp.id, message: saved }));
+      dispatch(replaceTempMessage({ roomId, tempId, message: saved }));
+      return saved;
+    } catch (error) {
+      dispatch(removeMessage({ roomId, id: tempId }));
+      throw error;
+    }
   };
 
   const publishTyping = (username) => {
